@@ -7,13 +7,13 @@ use axum::{
 
 use crate::error::Error;
 
-pub struct RegistrationPath {
-    pub device_id: String,
+pub struct DeviceRegistrationPath {
+    pub device_library_id: String,
     pub pass_type_id: String,
     pub serial_number: String,
 }
 
-pub struct RegistrationPushToken {
+pub struct DeviceRegistrationPushToken {
     pub push_token: String,
 }
 
@@ -24,18 +24,18 @@ struct Req {
 }
 
 #[async_trait]
-impl<S> FromRequestParts<S> for RegistrationPath
+impl<S> FromRequestParts<S> for DeviceRegistrationPath
 where
     S: Send + Sync,
 {
     type Rejection = Error;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let Path((device_id, pass_type_id, serial_number)): Path<(String, String, String)> =
+        let Path((device_library_id, pass_type_id, serial_number)): Path<(String, String, String)> =
             Path::from_request_parts(parts, state).await?;
 
         Ok(Self {
-            device_id,
+            device_library_id,
             pass_type_id,
             serial_number,
         })
@@ -43,7 +43,7 @@ where
 }
 
 #[async_trait]
-impl<S> FromRequest<S> for RegistrationPushToken
+impl<S> FromRequest<S> for DeviceRegistrationPushToken
 where
     S: Send + Sync,
 {

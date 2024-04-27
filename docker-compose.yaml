@@ -1,0 +1,12 @@
+# development setup
+version: "3"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./docker-volumes/db:/var/lib/postgresql/data
+    ports:
+      - 5432:5432

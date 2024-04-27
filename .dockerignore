@@ -1,3 +1,5 @@
 target
 .env
 sample.txt
+docker-volumes/
+pass-template/

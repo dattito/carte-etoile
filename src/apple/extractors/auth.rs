@@ -1,4 +1,8 @@
-use axum::{async_trait, extract::FromRequestParts, http::{request::Parts, HeaderValue}};
+use axum::{
+    async_trait,
+    extract::FromRequestParts,
+    http::{request::Parts, HeaderValue},
+};
 use axum_extra::{
     headers::{authorization::Credentials, Authorization},
     TypedHeader,
@@ -11,7 +15,6 @@ pub struct Auth(pub String);
 #[derive(Clone, PartialEq, Debug)]
 /// Token holder for Bearer Authentication, most often seen with oauth
 pub struct ApplePass(pub String);
-
 
 #[async_trait]
 impl<S> FromRequestParts<S> for Auth

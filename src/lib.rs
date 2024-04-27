@@ -1,3 +1,8 @@
-pub mod api;
-pub mod error;
-pub mod wallet_webhook;
+pub mod apple;
+pub mod db;
+mod error;
+pub mod http;
+pub mod utils;
+pub mod wallet;
+
+pub use error::{Error, Result};
