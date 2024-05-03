@@ -10,14 +10,10 @@ use axum_extra::{
 
 use crate::error::Error;
 
-pub struct Auth(pub String);
-
-#[derive(Clone, PartialEq, Debug)]
-/// Token holder for Bearer Authentication, most often seen with oauth
-pub struct ApplePass(pub String);
+pub struct AuthToken(pub String);
 
 #[async_trait]
-impl<S> FromRequestParts<S> for Auth
+impl<S> FromRequestParts<S> for AuthToken
 where
     S: Send + Sync,
 {
@@ -30,6 +26,10 @@ where
         Ok(Self(b.token().into()))
     }
 }
+
+#[derive(Clone, PartialEq, Debug)]
+/// Token holder for Bearer Authentication, most often seen with oauth
+pub struct ApplePass(pub String);
 
 // Mirror "Bearer" struct
 impl ApplePass {

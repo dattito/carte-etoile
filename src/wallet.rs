@@ -1,17 +1,32 @@
-use std::{fs::File, path::Path};
+use std::{
+    fs::File,
+    io::{Cursor, Seek, SeekFrom},
+    path::Path,
+};
 
-use chrono::Duration;
+use axum::body::Body;
+use chrono::{DateTime, Utc};
 use openssl::rsa::Rsa;
 use passes::{
     barcode::{Barcode, BarcodeFormat},
-    fields, resource, semantic_tags,
+    fields::{self, DateStyle},
+    resource,
     sign::{self, SignConfig},
     visual_appearance::{Color, VisualAppearance},
     web_service::WebService,
     Package, PassBuilder, PassConfig,
 };
+use tokio_util::io::ReaderStream;
 
-use crate::Result;
+use crate::{image::ImageMaker, Error, Result};
+
+pub struct LoyalityPass {
+    pub already_redeemed: i32,
+    pub _total_points: i32,
+    pub _current_points: i32,
+    pub pass_holder_name: String,
+    pub last_use: Option<DateTime<Utc>>,
+}
 
 #[derive(Clone, Debug)]
 pub struct PassMaker {
@@ -19,8 +34,9 @@ pub struct PassMaker {
     pass_type_identifier: String,
     i_sign_config: ISignConfig,
     web_service_url: String,
-    logo_path: String,
+    _logo_path: String,
     icon_path: String,
+    image_maker: ImageMaker,
 }
 
 impl PassMaker {
@@ -31,14 +47,16 @@ impl PassMaker {
         web_service_url: String,
         logo_path: String,
         icon_path: String,
+        image_maker: ImageMaker,
     ) -> Result<Self> {
         Ok(Self {
             i_sign_config,
             team_identifier,
             pass_type_identifier,
             web_service_url,
-            logo_path,
+            _logo_path: logo_path,
             icon_path,
+            image_maker,
         })
     }
 
@@ -46,16 +64,15 @@ impl PassMaker {
         &self.pass_type_identifier
     }
 
-    pub fn new_pass(&self, serial_number: String, authentication_token: String) -> Result<Package> {
-        // Calculate time
-        let time_to_departure = chrono::offset::Local::now().to_utc() + Duration::hours(4);
-        let time_to_boarding = time_to_departure - Duration::minutes(30);
-        let time_to_arrive = time_to_departure + Duration::hours(4);
-
-        // Creating pass
+    pub fn new_loyality_pass(
+        &self,
+        serial_number: String,
+        authentication_token: String,
+        loyality_pass: LoyalityPass,
+    ) -> Result<Package> {
         let pass = PassBuilder::new(PassConfig {
-            organization_name: "Datti Railways".into(),
-            description: "DRW Boarding Pass".into(),
+            organization_name: "Boulder Bubbletea".into(),
+            description: "Boulder Bubbletea Pass".into(),
             pass_type_identifier: self.pass_type_identifier.clone(),
             team_identifier: self.team_identifier.clone(),
             serial_number: serial_number.clone(),
@@ -63,92 +80,34 @@ impl PassMaker {
         .appearance(VisualAppearance {
             label_color: Color::white(),
             foreground_color: Color::white(),
-            background_color: Color::new(0, 143, 212),
+            background_color: Color::new(255, 145, 160),
         })
-        .fields(
-            fields::Type::BoardingPass {
-                pass_fields: fields::Fields {
-                    ..Default::default()
-                },
-                transit_type: fields::TransitType::Train,
+        .set_sharing_prohibited(true)
+        .fields({
+            let mut f = fields::Type::Coupon {
+                pass_fields: fields::Fields::default(),
             }
-            .add_primary_field(fields::Content::new(
-                "from",
-                "OAK",
+            .add_header_field(fields::Content::new(
+                "name",
+                "Boulder Bubbletea",
                 fields::ContentOptions {
-                    label: String::from("Oak island").into(),
-                    ..Default::default()
-                },
-            ))
-            .add_primary_field(fields::Content::new(
-                "to",
-                "MVK",
-                fields::ContentOptions {
-                    label: String::from("Маврикий").into(),
-                    ..Default::default()
-                },
-            ))
-            .add_auxiliary_field(fields::Content::new(
-                "seq",
-                "457",
-                fields::ContentOptions {
-                    label: String::from("seq").into(),
-                    ..Default::default()
-                },
-            ))
-            .add_auxiliary_field(fields::Content::new(
-                "boards",
-                "18:46",
-                fields::ContentOptions {
-                    label: String::from("scheduled").into(),
-                    ..Default::default()
-                },
-            ))
-            .add_auxiliary_field(fields::Content::new(
-                "seat",
-                "20A",
-                fields::ContentOptions {
-                    label: String::from("seat").into(),
-                    ..Default::default()
-                },
-            ))
-            .add_auxiliary_field(fields::Content::new(
-                "group",
-                &fastrand::i8(0..100).to_string(),
-                fields::ContentOptions {
-                    label: String::from("random number").into(),
+                    label: "Store".to_string().into(),
                     ..Default::default()
                 },
             ))
             .add_secondary_field(fields::Content::new(
-                "passenger",
-                "John Cena",
+                "name",
+                &loyality_pass.pass_holder_name,
                 fields::ContentOptions {
-                    label: String::from("passenger").into(),
+                    label: "Dieser Pass gehört".to_string().into(),
                     ..Default::default()
                 },
             ))
-            .add_header_field(fields::Content::new(
-                "gate",
-                "21",
+            .add_secondary_field(fields::Content::new(
+                "already_redeemed",
+                &loyality_pass.already_redeemed.to_string(),
                 fields::ContentOptions {
-                    label: String::from("gate").into(),
-                    ..Default::default()
-                },
-            ))
-            .add_header_field(fields::Content::new(
-                "flight",
-                "DL 1132",
-                fields::ContentOptions {
-                    label: String::from("flight").into(),
-                    ..Default::default()
-                },
-            ))
-            .add_back_field(fields::Content::new(
-                "about",
-                "This is test boarding pass for Datti Railways.",
-                fields::ContentOptions {
-                    label: String::from("About").into(),
+                    label: "Bereits eingelöst".to_string().into(),
                     ..Default::default()
                 },
             ))
@@ -156,32 +115,24 @@ impl PassMaker {
                 "serial-number",
                 &serial_number,
                 fields::ContentOptions {
-                    label: String::from("Github").into(),
+                    label: String::from("Serial Number").into(),
                     ..Default::default()
                 },
-            )),
-        )
-        .relevant_date(time_to_departure)
-        .expiration_date(time_to_arrive)
-        .semantics(semantic_tags::SemanticTags {
-            airline_code: String::from("DL 1132").into(),
-            departure_gate: String::from("21").into(),
-            departure_location: semantic_tags::SemanticTagLocation {
-                latitude: 43.3948533,
-                longitude: 132.1451673,
+            ));
+
+            if let Some(last_use) = loyality_pass.last_use {
+                f = f.add_back_field(fields::Content::new(
+                    "last_use",
+                    &last_use.to_rfc3339(),
+                    fields::ContentOptions {
+                        label: "Letzte Nutzung".to_string().into(),
+                        time_style: DateStyle::Medium.into(),
+                        date_style: DateStyle::Medium.into(),
+                        ..Default::default()
+                    },
+                ));
             }
-            .into(),
-            original_boarding_date: time_to_boarding.into(),
-            original_departure_date: time_to_departure.into(),
-            original_arrival_date: time_to_arrive.into(),
-            seats: vec![semantic_tags::SemanticTagSeat {
-                seat_identifier: String::from("20A").into(),
-                seat_number: String::from("A").into(),
-                seat_row: String::from("20").into(),
-                seat_type: String::from("econom").into(),
-                ..Default::default()
-            }],
-            ..Default::default()
+            f
         })
         .add_barcode(Barcode {
             message: serial_number,
@@ -194,14 +145,8 @@ impl PassMaker {
         })
         .build();
 
-        // Display pass.json
-        // let json = pass.make_json().unwrap();
-        // info!("pass.json: {}", json);
-
-        // Creating package
         let mut package = Package::new(pass);
 
-        // Adding icon
         let image_path = Path::new(&self.icon_path);
         let file = match File::open(image_path) {
             Err(why) => panic!("couldn't open {}: {}", image_path.display(), why),
@@ -211,27 +156,11 @@ impl PassMaker {
             .add_resource(resource::Type::Icon(resource::Version::Size2X), file)
             .unwrap();
 
-        // Adding logo
-        let image_path = Path::new(&self.logo_path);
-        let file = match File::open(image_path) {
-            Err(why) => panic!("couldn't open {}: {}", image_path.display(), why),
-            Ok(file) => file,
-        };
-
         package
-            .add_resource(resource::Type::Logo(resource::Version::Size2X), file)
+            .add_resource(resource::Type::Strip(resource::Version::Size2X), Cursor::new(self.image_maker.generate_points_image(loyality_pass._total_points.try_into().unwrap())?))
             .unwrap();
 
-        // Add certificates
         package.add_certificates(self.i_sign_config.new_sign_config()?);
-
-        // Save package as .pkpass
-        // let path = Path::new("DAL-boardingpass.pkpass");
-        // let file = match File::create(path) {
-        //     Err(why) => panic!("couldn't create {}: {}", path.display(), why),
-        //     Ok(file) => file,
-        // };
-        // package.write(file).unwrap();
 
         Ok(package)
     }
@@ -272,4 +201,23 @@ impl ISignConfig {
             &self.sign_key,
         )?)
     }
+}
+
+pub fn body_from_package(package: &mut Package) -> Result<Body> {
+    let mut buffer = Cursor::new(Vec::new());
+
+    package.write(&mut buffer).map_err(|_| Error::Unknown)?;
+
+    let _ = buffer.seek(SeekFrom::Start(0))?;
+
+    let stream = ReaderStream::new(buffer);
+    Ok(Body::from_stream(stream))
+
+    // Save package as .pkpass
+    // let path = Path::new("DAL-boardingpass.pkpass");
+    // let file = match File::create(path) {
+    //     Err(why) => panic!("couldn't create {}: {}", path.display(), why),
+    //     Ok(file) => file,
+    // };
+    // package.write(file).unwrap();
 }

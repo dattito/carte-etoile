@@ -4,3 +4,4 @@ docker-volumes/
 .env
 pass-template/
 *.pkpass
+src/bin/dev_cli.rs

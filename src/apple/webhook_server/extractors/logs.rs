@@ -6,7 +6,7 @@ use axum::{
 
 use crate::error::Error;
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 pub struct Logs {
     pub logs: Vec<String>,
 }

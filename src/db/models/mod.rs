@@ -4,4 +4,4 @@ mod passes;
 
 pub use device_pass_registrations::DbDevicePassRegistration;
 pub use devices::DbDevice;
-pub use passes::DbPass;
+pub use passes::{DbPass, DbPassTypeHelper, DbPassType, DbPassTypeLoyality};

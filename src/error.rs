@@ -12,7 +12,10 @@ pub enum Error {
     #[error("an unknown error occured")]
     Unknown,
 
-    #[error("invalid requeest: {0}")]
+    #[error("other error: {0}")]
+    Other(String),
+
+    #[error("invalid request: {0}")]
     InvalidRequest(String),
 
     #[error("environment variable does not exist: {0}")]
@@ -41,6 +44,12 @@ pub enum Error {
 
     #[error("status error: {0}")]
     HttpStatus(StatusCode),
+
+    #[error("apple apn error: {0}")]
+    AppleApn(#[from] a2::Error),
+
+    #[error("image error: {0}")]
+    Image(#[from] image::ImageError),
 }
 
 impl From<StatusCode> for Error {
@@ -56,6 +65,9 @@ impl IntoResponse for Error {
             | Self::IO(_)
             | Self::OpenSsl(_)
             | Self::EnvVarDoesNotExist(_)
+            | Self::AppleApn(_)
+            | Self::Other(_)
+            | Self::Image(_)
             | Self::DatabaseMigration(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "something went wrong").into_response()
             }
@@ -63,7 +75,8 @@ impl IntoResponse for Error {
             Self::AxumJsonRejection(e) => e.into_response(),
             Self::AxumTypedHeaderRejection(e) => e.into_response(),
             Self::InvalidRequest(message) => (StatusCode::BAD_REQUEST, message).into_response(),
-            Self::Database(_) => {
+            Self::Database(e) => {
+                tracing::error!("an database error occured: {:?}", e);
                 (StatusCode::INTERNAL_SERVER_ERROR, "something went wrong").into_response()
             }
             Self::HttpStatus(status_code) => status_code.into_response(),

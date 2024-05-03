@@ -1,5 +1,10 @@
+use std::sync::Arc;
+
 use card_etoile::{
-    http,
+    app::App,
+    apple::ApnClient,
+    http::{self, InnerAppState},
+    image::ImageMaker,
     utils::env::env_var,
     wallet::{ISignConfig, PassMaker},
     Result,
@@ -19,30 +24,38 @@ async fn main() -> Result<()> {
 
     info!("Connecting to database...");
 
-    let pool = PgPoolOptions::new()
+    let db_pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&config.database_url)
         .await?;
 
-    sqlx::migrate!().run(&pool).await.unwrap();
+    sqlx::migrate!().run(&db_pool).await.unwrap();
 
-    http::start(
-        &config.http_listener_host,
-        pool,
-        PassMaker::new(
-            ISignConfig::new(
-                &config.pass_signing_cert_path,
-                &config.pass_signing_key_path,
-                &config.pass_signing_key_token,
+    let state = Arc::new(InnerAppState {
+        app: App::new(
+            PassMaker::new(
+                ISignConfig::new(
+                    &config.pass_signing_cert_path,
+                    &config.pass_signing_key_path,
+                    &config.pass_signing_key_token,
+                )?,
+                config.pass_team_identifier,
+                config.pass_type_id,
+                config.pass_web_service_url,
+                config.pass_logo_path,
+                config.pass_icon_path,
+                ImageMaker::new(&config.background_image_path, &config.point_image_path)?,
             )?,
-            config.pass_team_identifier,
-            config.pass_type_id,
-            config.pass_web_service_url,
-            config.pass_logo_path,
-            config.pass_icon_path,
+            db_pool.clone(),
+        ),
+        apn_client: ApnClient::new(
+            &config.apn_signing_cert_p12_path,
+            &config.apn_signing_cert_p12_token,
         )?,
-    )
-    .await?;
+        db_pool,
+    });
+
+    http::start(&config.http_listener_host, state).await?;
 
     Ok(())
 }
@@ -58,6 +71,10 @@ struct Config {
     pass_web_service_url: String,
     pass_logo_path: String,
     pass_icon_path: String,
+    apn_signing_cert_p12_path: String,
+    apn_signing_cert_p12_token: String,
+    background_image_path: String,
+    point_image_path: String,
 }
 
 impl Config {
@@ -75,6 +92,10 @@ impl Config {
             pass_web_service_url: env_var("PASS_WEB_SERVICE_URL")?,
             pass_logo_path: env_var("PASS_LOGO_PATH")?,
             pass_icon_path: env_var("PASS_ICON_PATH")?,
+            apn_signing_cert_p12_path: env_var("APN_SIGNING_CERT_P12_PATH")?,
+            apn_signing_cert_p12_token: env_var("APN_SIGNING_CERT_P12_TOKEN")?,
+            background_image_path: env_var("BACKGROUND_IMAGE_PATH")?,
+            point_image_path: env_var("POINT_IMAGE_PATH")?,
         })
     }
 }

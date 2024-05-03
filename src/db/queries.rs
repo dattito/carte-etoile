@@ -109,3 +109,13 @@ SELECT EXISTS (
 
     Ok(result.0)
 }
+
+pub async fn push_tokens_from_serial_number(
+    serial_number: &str,
+    conn: &PgPool,
+) -> Result<Vec<String>, sqlx::Error> {
+    sqlx::query_scalar("SELECT d.push_token FROM devices d INNER JOIN device_pass_registrations dpr ON dpr.device_library_id=d.device_library_id WHERE dpr.pass_serial_number=$1")
+        .bind(serial_number)
+        .fetch_all(conn)
+        .await
+}
