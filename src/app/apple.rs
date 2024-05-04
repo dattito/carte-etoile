@@ -1,5 +1,5 @@
 use chrono::{DateTime, TimeZone, Utc};
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::{
     db::{queries::pass_registered_for_device, DbDevice, DbPass},

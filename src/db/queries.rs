@@ -74,13 +74,13 @@ pub async fn pass_registered_for_device(
 SELECT EXISTS (
     SELECT 1 
     FROM device_pass_registrations 
-    WHERE pass_serial_number = 'serial'
-    AND device_library_id = 'noice'
+    WHERE pass_serial_number=$1
+    AND device_library_id=$2
 );
 ",
     )
-    .bind(device_library_id)
     .bind(pass_serial_number)
+    .bind(device_library_id)
     .fetch_one(pool)
     .await?;
 
@@ -92,7 +92,7 @@ pub async fn correct_serial_number_auth_token(
     auth_token: &str,
     pool: &PgPool,
 ) -> Result<bool, sqlx::Error> {
-    let result: (bool,) = sqlx::query_as(
+    let result: bool = sqlx::query_scalar(
         "
 SELECT EXISTS (
     SELECT 1 
@@ -107,7 +107,7 @@ SELECT EXISTS (
     .fetch_one(pool)
     .await?;
 
-    Ok(result.0)
+    Ok(result)
 }
 
 pub async fn push_tokens_from_serial_number(
@@ -118,4 +118,16 @@ pub async fn push_tokens_from_serial_number(
         .bind(serial_number)
         .fetch_all(conn)
         .await
+}
+
+pub async fn remove_devices_with_push_tokens(
+    push_tokens: Vec<&str>,
+    conn: &PgPool,
+) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM devices WHERE push_token=ANY($1)")
+        .bind(push_tokens)
+        .execute(conn)
+        .await?;
+
+    Ok(())
 }

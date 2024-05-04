@@ -1,10 +1,11 @@
 use std::io::Cursor;
 
-use image::{imageops::overlay, DynamicImage, GenericImageView, ImageResult};
+use image::{imageops::overlay, DynamicImage, ImageResult};
 
 static POINT_HEIGHT_RATIO: f32 = 0.40;
+static OPACITY_DISABLED: f32 = 0.20;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImageMaker {
     background_image: DynamicImage,
     point_image: DynamicImage,
@@ -18,34 +19,56 @@ impl ImageMaker {
         })
     }
 
-    pub fn generate_points_image(&self, num_points: u32) -> ImageResult<Vec<u8>> {
-        let mut background_image = self.background_image.clone();
+    pub fn generate_points_image(
+        &self,
+        total_points: u32,
+        current_points: u32,
+    ) -> ImageResult<Vec<u8>> {
+        let mut background_image = self.background_image.clone().to_rgba8();
 
         let (img_width, img_height) = background_image.dimensions();
         let point_height = (img_height as f32 * POINT_HEIGHT_RATIO).round() as u32;
         let space_height =
             (img_height as f32 * (1.0 - 2.0 * POINT_HEIGHT_RATIO) / 3.0).round() as u32;
 
-        let num_in_row = num_points / 2;
+        let num_in_row = total_points / 2;
         let point_width = (img_width as f32 - (num_in_row as f32 + 1.0) * space_height as f32)
             / num_in_row as f32;
-        let point_resized = self.point_image.resize(
-            point_width as u32,
-            point_height,
-            image::imageops::FilterType::Nearest,
-        );
+        let point_enabled = self
+            .point_image
+            .resize(
+                point_width as u32,
+                point_height,
+                image::imageops::FilterType::Nearest,
+            )
+            .to_rgba8();
+
+        let mut point_disabled = point_enabled.clone();
+
+        point_disabled
+            .pixels_mut()
+            .for_each(|p| p.0[3] = (p.0[3] as f32 * OPACITY_DISABLED) as u8);
 
         let positions = self.calculate_positions(
             img_height,
             point_width as u32,
             point_height,
             space_height,
-            num_points,
+            total_points,
         );
 
-        for (x, y) in positions {
-            overlay(&mut background_image, &point_resized, x.into(), y.into());
-        }
+        positions.into_iter().enumerate().for_each(|(i, (x, y))| {
+            overlay(
+                &mut background_image,
+                if i < current_points.try_into().unwrap() {
+                    &point_enabled
+                } else {
+                    &point_disabled
+                },
+                x.into(),
+                y.into(),
+            );
+        });
 
         let mut buf = Vec::new();
         background_image.write_to(&mut Cursor::new(&mut buf), image::ImageFormat::Png)?;

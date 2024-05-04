@@ -19,8 +19,8 @@ CREATE TABLE passes (
 );
 
 CREATE TABLE device_pass_registrations (
-    device_library_id VARCHAR(255) REFERENCES devices(device_library_id), 
-    pass_serial_number VARCHAR(255) REFERENCES passes(serial_number),
+    device_library_id VARCHAR(255) REFERENCES devices(device_library_id) ON DELETE CASCADE, 
+    pass_serial_number VARCHAR(255) REFERENCES passes(serial_number) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL,
     CONSTRAINT device_pass_registration_pk PRIMARY KEY(device_library_id,pass_serial_number)
 );

@@ -3,7 +3,7 @@ use std::fs::File;
 
 #[derive(Debug, Clone)]
 pub struct ApnClient {
-    base_client: Client,
+    base_client: std::sync::Arc<Client>,
 }
 
 impl ApnClient {
@@ -11,7 +11,7 @@ impl ApnClient {
         let mut certificate = File::open(certificate_path).unwrap();
 
         Ok(Self {
-            base_client: Client::certificate(&mut certificate, password, a2::Endpoint::Production)?,
+            base_client: Client::certificate(&mut certificate, password, a2::Endpoint::Production)?.into(),
         })
     }
 

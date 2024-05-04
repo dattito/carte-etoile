@@ -1,5 +1,6 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use sqlx::{postgres::PgQueryResult, prelude::FromRow, PgPool};
+use tracing::warn;
 
 #[derive(FromRow)]
 pub struct DbPassTypeLoyality {
@@ -8,7 +9,7 @@ pub struct DbPassTypeLoyality {
     pub total_points: i32,
     pub current_points: i32,
     pub pass_holder_name: String,
-    pub last_used_at: Option<NaiveDateTime>
+    pub last_used_at: Option<NaiveDateTime>,
 }
 
 impl DbPassTypeLoyality {
@@ -29,6 +30,29 @@ impl DbPassTypeLoyality {
             .fetch_one(conn)
             .await
     }
+
+    pub async fn add_points(
+        serial_number: &str,
+        points: i32,
+        conn: &PgPool,
+    ) -> Result<(), sqlx::Error> {
+        let now = Utc::now().naive_utc();
+
+        let mut transaction = conn.begin().await?;
+        sqlx::query("UPDATE pass_type_loyality SET current_points=current_points+$1, last_used_at=$2 WHERE serial_number=$3")
+        .bind(points)
+            .bind(now).bind(serial_number).execute(&mut *transaction).await?;
+
+        sqlx::query("UPDATE passes SET last_updated_at=$1 WHERE serial_number=$2")
+            .bind(now)
+            .bind(serial_number)
+            .execute(&mut *transaction)
+            .await?;
+
+        transaction.commit().await?;
+
+        Ok(())
+    }
 }
 
 pub enum DbPassType {
@@ -43,10 +67,10 @@ impl DbPassType {
     }
 }
 
-#[derive(sqlx::Type, Clone)]
+#[derive(sqlx::Type, Clone, Debug)]
 #[sqlx(rename_all = "SCREAMING_SNAKE_CASE", type_name = "pass_type")]
 pub enum DbPassTypeHelper {
-    Loyality
+    Loyality,
 }
 
 impl DbPassTypeHelper {
@@ -71,7 +95,7 @@ impl From<DbPassType> for DbPassTypeHelper {
     }
 }
 
-#[derive(FromRow)]
+#[derive(FromRow, Debug)]
 pub struct DbPass {
     pub serial_number: String,
     pub pass_type_id: String,
@@ -82,6 +106,13 @@ pub struct DbPass {
 }
 
 impl DbPass {
+    pub async fn exists(serial_number: &str, conn: &PgPool) -> Result<bool, sqlx::Error> {
+        sqlx::query_scalar::<_, bool>("SELECT EXISTS ( SELECT 1 FROM passes WHERE serial_number=$1)")
+            .bind(serial_number)
+            .fetch_one(conn)
+            .await
+    }
+
     pub async fn insert(&self, conn: &PgPool) -> Result<PgQueryResult, sqlx::Error> {
         sqlx::query(
             "INSERT INTO passes (serial_number, pass_type_id, auth_token, created_at, last_updated_at, type) VALUES ($1, $2, $3, $4, $5, $6)",
@@ -109,11 +140,11 @@ impl DbPass {
 
     pub async fn from_pass_type_last_updated_device_library_id(
         pass_type_id: &str,
-        last_updated: Option<chrono::NaiveDateTime>,
+        last_updated_at: Option<chrono::NaiveDateTime>,
         device_library_id: &str,
         conn: &PgPool,
     ) -> Result<Vec<Self>, sqlx::Error> {
-        if let Some(lu) = last_updated {
+        if let Some(lu) = last_updated_at {
             sqlx::query_as::<_, Self>(
             "SELECT * FROM passes p INNER JOIN device_pass_registrations dpr ON p.serial_number=dpr.pass_serial_number WHERE pass_type_id=$1 AND device_library_id=$2 AND last_updated_at>=$3",
         )

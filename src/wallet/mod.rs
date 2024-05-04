@@ -22,13 +22,13 @@ use crate::{image::ImageMaker, Error, Result};
 
 pub struct LoyalityPass {
     pub already_redeemed: i32,
-    pub _total_points: i32,
-    pub _current_points: i32,
+    pub total_points: i32,
+    pub current_points: i32,
     pub pass_holder_name: String,
     pub last_use: Option<DateTime<Utc>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct PassMaker {
     team_identifier: String,
     pass_type_identifier: String,
@@ -157,7 +157,13 @@ impl PassMaker {
             .unwrap();
 
         package
-            .add_resource(resource::Type::Strip(resource::Version::Size2X), Cursor::new(self.image_maker.generate_points_image(loyality_pass._total_points.try_into().unwrap())?))
+            .add_resource(
+                resource::Type::Strip(resource::Version::Size2X),
+                Cursor::new(self.image_maker.generate_points_image(
+                    loyality_pass.total_points.try_into().unwrap(),
+                    loyality_pass.current_points.try_into().unwrap(),
+                )?),
+            )
             .unwrap();
 
         package.add_certificates(self.i_sign_config.new_sign_config()?);
