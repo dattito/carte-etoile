@@ -50,6 +50,18 @@ pub enum Error {
 
     #[error("image error: {0}")]
     Image(#[from] image::ImageError),
+
+    #[error("pass not found")]
+    PassNotFound,
+
+    #[error("invalid amount of points")]
+    InvalidAmountOfPoints,
+
+    #[error("jwk error: {0}")]
+    OidcValidate(#[from] oidc_jwt_validator::ValidationError),
+
+    #[error("jwk build error: {0}")]
+    OidcValidateBuild(#[from] oidc_jwt_validator::FetchError),
 }
 
 impl From<StatusCode> for Error {
@@ -66,7 +78,7 @@ impl IntoResponse for Error {
             | Self::OpenSsl(_)
             | Self::EnvVarDoesNotExist(_)
             | Self::AppleApn(_)
-            | Self::Other(_)
+            | Self::OidcValidateBuild(_)
             | Self::Image(_)
             | Self::DatabaseMigration(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "something went wrong").into_response()
@@ -76,10 +88,34 @@ impl IntoResponse for Error {
             Self::AxumTypedHeaderRejection(e) => e.into_response(),
             Self::InvalidRequest(message) => (StatusCode::BAD_REQUEST, message).into_response(),
             Self::Database(e) => {
-                tracing::error!("an database error occured: {:?}", e);
+                tracing::error!(sqlx_error = e.to_string(), "an database error occured");
                 (StatusCode::INTERNAL_SERVER_ERROR, "something went wrong").into_response()
             }
             Self::HttpStatus(status_code) => status_code.into_response(),
+            Self::Other(e) => {
+                tracing::error!("an error occured: '{e}'");
+                (StatusCode::INTERNAL_SERVER_ERROR, e).into_response()
+            }
+            Self::PassNotFound => StatusCode::NOT_FOUND.into_response(),
+            Self::InvalidAmountOfPoints => (
+                StatusCode::NOT_FOUND,
+                "the amount of points is invalidthe amount of points is invalid",
+            )
+                .into_response(),
+            Self::OidcValidate(e) => match e {
+                oidc_jwt_validator::ValidationError::ValidationFailed(_)
+                | oidc_jwt_validator::ValidationError::MissingKIDToken => {
+                    (StatusCode::UNAUTHORIZED, "invalid authorization token").into_response()
+                }
+                oidc_jwt_validator::ValidationError::CacheError => {
+                    tracing::error!("couldn't verify jwt token due to cache error");
+                    StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                }
+                oidc_jwt_validator::ValidationError::MissingKIDJWKS => {
+                    tracing::error!("jwt token has no kid field");
+                    (StatusCode::UNAUTHORIZED, "invalid authorization token").into_response()
+                }
+            },
         }
     }
 }

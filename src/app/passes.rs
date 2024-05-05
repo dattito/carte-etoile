@@ -1,5 +1,4 @@
 use ::futures::future::join_all;
-use axum::http::StatusCode;
 use chrono::{TimeZone, Utc};
 use passes::Package;
 
@@ -35,7 +34,7 @@ impl App {
         let dbtl = DbPassTypeLoyality {
             serial_number: serial_number.clone(),
             total_points: 10,
-            current_points: 8,
+            current_points: 0,
             already_redeemed: 0,
             pass_holder_name: pass_holder_name.to_string(),
             last_used_at: None,
@@ -58,18 +57,14 @@ impl App {
         Ok((wallet_pass, serial_number))
     }
 
-    pub async fn pass_package(
-        &self,
-        pass_type_id: &str,
-        pass_serial_number: &str,
-    ) -> Result<Package> {
-        let db_pass =
-            DbPass::from_pass_type_serial_number(pass_type_id, pass_serial_number, &self.db_pool)
-                .await?;
+    pub async fn pass_package(&self, pass_serial_number: &str) -> Result<Package> {
+        let db_pass = DbPass::from_serial_number_optional(pass_serial_number, &self.db_pool)
+            .await?
+            .ok_or(Error::PassNotFound)?;
 
         let pass_type = db_pass
             .r#type
-            .query(pass_serial_number, &self.db_pool)
+            .from_serial_number(pass_serial_number, &self.db_pool)
             .await?;
 
         let wallet_pass = match pass_type {
@@ -95,13 +90,22 @@ impl App {
         pass_serial_number: &str,
         points: i32,
     ) -> Result<()> {
-        if !DbPass::exists(pass_serial_number, &self.db_pool).await? {
+        let loyality_pass_option =
+            DbPassTypeLoyality::from_serial_number_optional(pass_serial_number, &self.db_pool)
+                .await?;
+
+        if let Some(pass) = loyality_pass_option {
+            if (pass.total_points - pass.current_points) < points || points == 0 {
+                return Err(Error::InvalidAmountOfPoints);
+            }
+        } else {
             return Err(Error::Other("this serial number does not exist".into()));
         }
 
         DbPassTypeLoyality::add_points(pass_serial_number, points, &self.db_pool).await?;
 
-        self.send_update_pass_notification(pass_serial_number).await?;
+        self.send_update_pass_notification(pass_serial_number)
+            .await?;
 
         Ok(())
     }

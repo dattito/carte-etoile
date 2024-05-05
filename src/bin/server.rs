@@ -1,18 +1,20 @@
 use std::sync::Arc;
 
-use card_etoile::{
+use carte_etoile::{
     app::{App, AppConfig},
     apple::ApnClient,
     db,
-    http::{self, InnerAppState},
+    http::{self, InnerAppState, OidcValidator},
     image::ImageMaker,
     setup_tracing,
     wallet::{ISignConfig, PassMaker},
     Result,
 };
+use dotenvy::dotenv;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv().ok();
     setup_tracing();
 
     let config = AppConfig::from_env()?;
@@ -24,12 +26,14 @@ async fn main() -> Result<()> {
         &config.apn_signing_cert_p12_token,
     )?;
 
+    let sign_config = ISignConfig::new(
+        &config.pass_signing_cert_path,
+        &config.pass_signing_key_path,
+        &config.pass_signing_key_token,
+    )?;
+
     let pass_maker = PassMaker::new(
-        ISignConfig::new(
-            &config.pass_signing_cert_path,
-            &config.pass_signing_key_path,
-            &config.pass_signing_key_token,
-        )?,
+        sign_config,
         config.pass_team_identifier,
         config.pass_type_id,
         config.pass_web_service_url,
@@ -38,12 +42,15 @@ async fn main() -> Result<()> {
         ImageMaker::new(&config.background_image_path, &config.point_image_path)?,
     )?;
 
+    let oidc_validator = OidcValidator::new(config.oidc_url).await?;
+
     let app = App::new(pass_maker, db_pool.clone(), apn_client.clone());
 
     let state = Arc::new(InnerAppState {
         app,
         apn_client,
         db_pool,
+        oidc_validator,
     });
 
     http::start(&config.http_listener_host, state).await?;

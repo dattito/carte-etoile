@@ -96,7 +96,7 @@ impl PassMaker {
                 },
             ))
             .add_secondary_field(fields::Content::new(
-                "name",
+                "pass_holder",
                 &loyality_pass.pass_holder_name,
                 fields::ContentOptions {
                     label: "Dieser Pass gehört".to_string().into(),

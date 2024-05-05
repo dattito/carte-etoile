@@ -1,6 +1,5 @@
 use chrono::{NaiveDateTime, Utc};
 use sqlx::{postgres::PgQueryResult, prelude::FromRow, PgPool};
-use tracing::warn;
 
 #[derive(FromRow)]
 pub struct DbPassTypeLoyality {
@@ -24,10 +23,23 @@ impl DbPassTypeLoyality {
             .execute(conn).await
     }
 
-    pub async fn query(serial_number: &str, conn: &PgPool) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, Self>("SELECT * FROM pass_type_loyality WHERE serial_number=$1")
+    pub async fn from_serial_number(
+        serial_number: &str,
+        conn: &PgPool,
+    ) -> Result<Self, sqlx::Error> {
+        sqlx::query_as("SELECT * FROM pass_type_loyality WHERE serial_number=$1")
             .bind(serial_number)
             .fetch_one(conn)
+            .await
+    }
+
+    pub async fn from_serial_number_optional(
+        serial_number: &str,
+        conn: &PgPool,
+    ) -> Result<Option<Self>, sqlx::Error> {
+        sqlx::query_as("SELECT * FROM pass_type_loyality WHERE serial_number=$1")
+            .bind(serial_number)
+            .fetch_optional(conn)
             .await
     }
 
@@ -74,14 +86,14 @@ pub enum DbPassTypeHelper {
 }
 
 impl DbPassTypeHelper {
-    pub async fn query(
+    pub async fn from_serial_number(
         &self,
         serial_number: &str,
         conn: &PgPool,
     ) -> Result<DbPassType, sqlx::Error> {
         match self {
             Self::Loyality => Ok(DbPassType::Loyality(
-                DbPassTypeLoyality::query(serial_number, conn).await?,
+                DbPassTypeLoyality::from_serial_number(serial_number, conn).await?,
             )),
         }
     }
@@ -107,7 +119,7 @@ pub struct DbPass {
 
 impl DbPass {
     pub async fn exists(serial_number: &str, conn: &PgPool) -> Result<bool, sqlx::Error> {
-        sqlx::query_scalar::<_, bool>("SELECT EXISTS ( SELECT 1 FROM passes WHERE serial_number=$1)")
+        sqlx::query_scalar("SELECT EXISTS ( SELECT 1 FROM passes WHERE serial_number=$1)")
             .bind(serial_number)
             .fetch_one(conn)
             .await
@@ -126,15 +138,23 @@ impl DbPass {
         .execute(conn).await
     }
 
-    pub async fn from_pass_type_serial_number(
-        pass_type_id: &str,
+    pub async fn from_serial_number(
         serial_number: &str,
         conn: &PgPool,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, Self>("SELECT * FROM passes WHERE pass_type_id=$1 AND serial_number=$2")
-            .bind(pass_type_id)
+        sqlx::query_as("SELECT * FROM passes WHERE serial_number=$1")
             .bind(serial_number)
             .fetch_one(conn)
+            .await
+    }
+
+    pub async fn from_serial_number_optional(
+        serial_number: &str,
+        conn: &PgPool,
+    ) -> Result<Option<Self>, sqlx::Error> {
+        sqlx::query_as::<_, _>("SELECT * FROM passes WHERE serial_number=$1")
+            .bind(serial_number)
+            .fetch_optional(conn)
             .await
     }
 

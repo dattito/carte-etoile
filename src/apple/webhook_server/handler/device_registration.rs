@@ -1,20 +1,17 @@
 use axum::{extract::State, http::StatusCode};
 
 use crate::{
-    apple::webhook_server::extractors::{DeviceLibraryId, DeviceRegistrationPushToken, PassAuth},
+    apple::webhook_server::extractors::{
+        DeviceLibraryId, DeviceRegistrationPushToken, SerialNumber,
+    },
     http::AppState,
     Result,
 };
 
-#[tracing::instrument(err, skip(state, push_token))]
 pub async fn handle_device_registration(
     State(state): State<AppState>,
     DeviceLibraryId { device_library_id }: DeviceLibraryId,
-    PassAuth {
-        serial_number,
-        pass_type_id,
-        pass_token: _,
-    }: PassAuth,
+    SerialNumber(serial_number): SerialNumber,
     DeviceRegistrationPushToken { push_token }: DeviceRegistrationPushToken,
 ) -> Result<StatusCode> {
     let already_exists = state

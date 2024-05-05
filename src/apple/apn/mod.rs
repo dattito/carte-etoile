@@ -11,7 +11,8 @@ impl ApnClient {
         let mut certificate = File::open(certificate_path).unwrap();
 
         Ok(Self {
-            base_client: Client::certificate(&mut certificate, password, a2::Endpoint::Production)?.into(),
+            base_client: Client::certificate(&mut certificate, password, a2::Endpoint::Production)?
+                .into(),
         })
     }
 

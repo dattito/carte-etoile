@@ -3,7 +3,6 @@ use axum::Json;
 use chrono::{DateTime, Utc};
 use serde_with::formats::Flexible;
 use serde_with::TimestampMilliSeconds;
-use tracing::warn;
 
 use crate::http::AppState;
 use crate::Result;
@@ -46,8 +45,6 @@ pub async fn handle_list_updatable_passes(
         .app
         .apple_updatable_passes(&pass_type_id, &device_library_id, passes_updated_since)
         .await?;
-
-    warn!("serial_numbers: {serial_numbers:?}, last_updated:{}", last_updated.to_rfc3339());
 
     Ok(Json(Res {
         serial_numbers,

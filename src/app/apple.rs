@@ -1,5 +1,5 @@
 use chrono::{DateTime, TimeZone, Utc};
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::{
     db::{queries::pass_registered_for_device, DbDevice, DbPass},
@@ -65,7 +65,7 @@ DO NOTHING
         Ok(already_exists)
     }
 
-    pub async fn apple_device_deregistration(
+    pub async fn apple_device_unregistration(
         &self,
         device_library_id: &str,
         serial_number: &str,
@@ -90,10 +90,13 @@ DELETE FROM devices WHERE device_library_id=$1
             .execute(&self.db_pool)
             .await?;
 
-            info!("device deleted");
+            info!("there were no more passes connected to the device, deleted it");
         }
 
-        info!(devie_library_id=device_library_id, "device deregistered successfully");
+        info!(
+            devie_library_id = device_library_id,
+            "device unregistered successfully"
+        );
 
         Ok(())
     }

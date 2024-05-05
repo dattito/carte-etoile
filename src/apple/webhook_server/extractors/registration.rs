@@ -1,10 +1,11 @@
 use axum::{
-    async_trait, extract::{FromRequest, FromRequestParts, Path, Request}, http::request::Parts, Json, RequestExt, RequestPartsExt
+    async_trait,
+    extract::{FromRequest, FromRequestParts, Path, Request},
+    http::request::Parts,
+    Json, RequestExt, RequestPartsExt,
 };
 
 use crate::error::Error;
-
-use super::AuthToken;
 
 #[derive(serde::Deserialize)]
 pub struct DeviceLibraryId {
@@ -43,34 +44,23 @@ where
     }
 }
 
-pub struct PassAuth {
-    pub pass_type_id: String,
-    pub serial_number: String,
-    pub pass_token: String,
-}
+pub struct SerialNumber(pub String);
 
 #[derive(serde::Deserialize)]
-struct PassAuthPath {
-    pub pass_type_id: String,
+struct SerialNumberPath {
     pub serial_number: String,
 }
 
 #[async_trait]
-impl<S> FromRequestParts<S> for PassAuth
+impl<S> FromRequestParts<S> for SerialNumber
 where
     S: Send + Sync,
 {
     type Rejection = Error;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let Path(p): Path<PassAuthPath> = parts.extract_with_state(state).await?;
+        let Path(p): Path<SerialNumberPath> = parts.extract_with_state(state).await?;
 
-        let AuthToken(pass_token) = parts.extract().await?;
-
-        Ok(Self {
-            pass_type_id: p.pass_type_id,
-            serial_number: p.serial_number,
-            pass_token,
-        })
+        Ok(Self(p.serial_number))
     }
 }
