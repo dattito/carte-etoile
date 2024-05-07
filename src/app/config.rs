@@ -1,6 +1,10 @@
-use crate::{utils::env::env_var, Result};
+fn default_http_listener_host() -> String {
+    "127.0.0.1:3000".into()
+}
 
+#[derive(serde::Deserialize, Debug)]
 pub struct AppConfig {
+    #[serde(default = "default_http_listener_host")]
     pub http_listener_host: String,
     pub database_url: String,
     pub pass_signing_cert_path: String,
@@ -19,23 +23,7 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    pub fn from_env() -> Result<Self> {
-        Ok(Self {
-            http_listener_host: env_var("HTTP_LISTENER_HOST").unwrap_or("127.0.0.1:3000".into()),
-            database_url: env_var("DATABASE_URL")?,
-            pass_signing_cert_path: env_var("PASS_SIGNING_CERT_PATH")?,
-            pass_signing_key_path: env_var("PASS_SIGNING_KEY_PATH")?,
-            pass_signing_key_token: env_var("PASS_SIGNING_KEY_TOKEN")?,
-            pass_team_identifier: env_var("PASS_TEAM_IDENTIFIER")?,
-            pass_type_id: env_var("PASS_TYPE_ID")?,
-            pass_web_service_url: env_var("PASS_WEB_SERVICE_URL")?,
-            pass_logo_path: env_var("PASS_LOGO_PATH")?,
-            pass_icon_path: env_var("PASS_ICON_PATH")?,
-            apn_signing_cert_p12_path: env_var("APN_SIGNING_CERT_P12_PATH")?,
-            apn_signing_cert_p12_token: env_var("APN_SIGNING_CERT_P12_TOKEN")?,
-            background_image_path: env_var("BACKGROUND_IMAGE_PATH")?,
-            point_image_path: env_var("POINT_IMAGE_PATH")?,
-            oidc_url: env_var("OIDC_URL")?,
-        })
+    pub fn from_env() -> Result<Self, envy::Error> {
+        envy::from_env()
     }
 }

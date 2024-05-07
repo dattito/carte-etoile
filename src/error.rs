@@ -18,9 +18,6 @@ pub enum Error {
     #[error("invalid request: {0}")]
     InvalidRequest(String),
 
-    #[error("environment variable does not exist: {0}")]
-    EnvVarDoesNotExist(String),
-
     #[error("IO Error: {0}")]
     IO(#[from] std::io::Error),
 
@@ -62,6 +59,9 @@ pub enum Error {
 
     #[error("jwk build error: {0}")]
     OidcValidateBuild(#[from] oidc_jwt_validator::FetchError),
+
+    #[error("env error: {0}")]
+    Env(#[from] envy::Error)
 }
 
 impl From<StatusCode> for Error {
@@ -76,7 +76,7 @@ impl IntoResponse for Error {
             Self::Unknown
             | Self::IO(_)
             | Self::OpenSsl(_)
-            | Self::EnvVarDoesNotExist(_)
+            | Self::Env(_)
             | Self::AppleApn(_)
             | Self::OidcValidateBuild(_)
             | Self::Image(_)

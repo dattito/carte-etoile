@@ -1,10 +1,11 @@
 use axum::{
+    http::header::{AUTHORIZATION, CONTENT_TYPE},
     routing::{get, post},
     Router,
 };
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
-use tower_http::trace::TraceLayer;
+use tower_http::{cors::Any, trace::TraceLayer};
 use tracing::info;
 
 use crate::{
@@ -37,6 +38,12 @@ pub async fn start(host: &str, state: AppState) -> Result<()> {
         .nest("/apple-webhooks", apple::router(state))
         .layer(
             ServiceBuilder::new()
+                .layer(
+                    tower_http::cors::CorsLayer::new()
+                        .allow_methods(Any)
+                        .allow_origin(Any)
+                        .allow_headers([AUTHORIZATION, CONTENT_TYPE]),
+                )
                 .layer(axum::middleware::from_fn(setup_request_tracing))
                 .layer(TraceLayer::new_for_http()),
         );
