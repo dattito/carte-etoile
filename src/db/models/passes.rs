@@ -183,4 +183,22 @@ impl DbPass {
         .await
         }
     }
+
+    pub async fn count_of_devices(serial_number: &str, conn: &PgPool) -> Result<i64, sqlx::Error> {
+        sqlx::query_scalar(
+            "SELECT COUNT(*) FROM device_pass_registrations WHERE pass_serial_number = $1",
+        )
+        .bind(serial_number)
+        .fetch_one(conn)
+        .await
+    }
+
+    pub async fn delete(serial_number: &str, conn: &PgPool) -> Result<(), sqlx::Error> {
+        sqlx::query("DELETE FROM passes WHERE serial_number=$1")
+            .bind(serial_number)
+            .execute(conn)
+            .await?;
+
+        Ok(())
+    }
 }

@@ -26,7 +26,7 @@ CREATE TABLE device_pass_registrations (
 );
 
 CREATE TABLE pass_type_loyality (
-    serial_number VARCHAR(255) PRIMARY KEY REFERENCES passes(serial_number),
+    serial_number VARCHAR(255) PRIMARY KEY REFERENCES passes(serial_number) ON DELETE CASCADE,
     already_redeemed INTEGER NOT NULL,
     total_points INTEGER NOT NULL,
     current_points INTEGER NOT NULL,

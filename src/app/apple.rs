@@ -70,33 +70,19 @@ DO NOTHING
         device_library_id: &str,
         serial_number: &str,
     ) -> Result<()> {
-        sqlx::query(
-            "
-DELETE FROM device_pass_registrations WHERE device_library_id=$1 AND pass_serial_number=$2
-",
-        )
-        .bind(device_library_id)
-        .bind(serial_number)
-        .execute(&self.db_pool)
-        .await?;
+        DbDevice::remove_pass(device_library_id, serial_number, &self.db_pool).await?;
 
         if DbDevice::count_of_passes(device_library_id, &self.db_pool).await? == 0 {
-            sqlx::query(
-                "
-DELETE FROM devices WHERE device_library_id=$1
-        ",
-            )
-            .bind(device_library_id)
-            .execute(&self.db_pool)
-            .await?;
-
-            info!("there were no more passes connected to the device, deleted it");
+            DbDevice::delete(device_library_id, &self.db_pool).await?;
+            info!(device_library_id = device_library_id, "device deleted");
         }
 
-        info!(
-            devie_library_id = device_library_id,
-            "device unregistered successfully"
-        );
+        if DbPass::count_of_devices(serial_number, &self.db_pool).await? == 0 {
+            DbPass::delete(serial_number, &self.db_pool).await?;
+            info!(serial_number = serial_number, "pass deleted");
+        }
+
+        info!(devie_library_id = device_library_id, "device unregistered");
 
         Ok(())
     }
