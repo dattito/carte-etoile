@@ -1,52 +1,41 @@
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
-};
+use axum::{http::StatusCode, response::IntoResponse};
+use schemars::JsonSchema;
+use serde::Serialize;
+use serde_json::Value;
+use uuid::Uuid;
 
 use crate::Error;
 
-pub enum ClientError {
-    InternalServerError,
-    NotFound,
-    BadRequest(Option<String>),
-    Unauthorized(Option<String>),
-    JwtValidationCacheError,
-    InvalidAccessToken,
-    JwtMissingKidField,
-    StatusCode(StatusCode),
-    Extractor(Response),
+#[derive(Serialize, JsonSchema, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ClientError {
+    /// The unique name of the error
+    pub error_name: &'static str,
+
+    #[serde(skip)]
+    pub status: StatusCode,
+
+    /// The unique id of the request
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<Uuid>,
+
+    /// Optional Additional error details.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_details: Option<Value>,
+
+    /// The unique id of the request
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_message: Option<&'static str>,
 }
 
-impl IntoResponse for ClientError {
-    fn into_response(self) -> axum::response::Response {
-        match self {
-            Self::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-            Self::NotFound => StatusCode::NOT_FOUND.into_response(),
-            Self::BadRequest(message) => ClientErrorResponse::new()
-                .with_optional_message(message)
-                .with_status_code(StatusCode::BAD_REQUEST)
-                .into_response(),
-            Self::Unauthorized(message) => ClientErrorResponse::new()
-                .with_optional_message(message)
-                .with_status_code(StatusCode::BAD_REQUEST)
-                .into_response(),
-            Self::JwtValidationCacheError => ClientErrorResponse::new()
-                .with_message("error verifying jwt token")
-                .with_status_code(StatusCode::INTERNAL_SERVER_ERROR)
-                .into_response(),
-            Self::InvalidAccessToken => ClientErrorResponse::new()
-                .with_message("invalid access token")
-                .with_status_code(StatusCode::UNAUTHORIZED)
-                .into_response(),
-            Self::JwtMissingKidField => ClientErrorResponse::new()
-                .with_message(
-                    "provided access token has no KID field in header, no chance to verify it",
-                )
-                .with_status_code(StatusCode::EXPECTATION_FAILED)
-                .into_response(),
-            Self::StatusCode(status_code) => status_code.into_response(),
-            Self::Extractor(response) => response,
+impl ClientError {
+    pub fn new_internal_server_error() -> Self {
+        Self {
+            error_name: "InternalServerError",
+            error_details: Some("Something went wrong on our side".into()),
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            request_id: None,
+            client_message: Some("Something went wrong"),
         }
     }
 }
@@ -63,74 +52,82 @@ impl From<Error> for ClientError {
             | Error::Image(_)
             | Error::Database(_)
             | Error::Other(_)
-            | Error::DatabaseMigration(_) => Self::InternalServerError,
+            | Error::DatabaseMigration(_) => Self::new_internal_server_error(),
             Error::OidcValidate(e) => match e {
                 oidc_jwt_validator::ValidationError::ValidationFailed(_)
-                | oidc_jwt_validator::ValidationError::MissingKIDToken => Self::JwtMissingKidField,
-                oidc_jwt_validator::ValidationError::CacheError => Self::JwtValidationCacheError,
-                oidc_jwt_validator::ValidationError::MissingKIDJWKS => {
-                    Self::JwtValidationCacheError
+                | oidc_jwt_validator::ValidationError::MissingKIDToken
+                | oidc_jwt_validator::ValidationError::MissingKIDJWKS => Self {
+                    error_name: "JwtMissingKidField",
+                    error_details: Some(
+                        "The access token provided does not have the required shape.".into(),
+                    ),
+                    status: StatusCode::EXPECTATION_FAILED,
+                    request_id: None,
+                    client_message: Some(
+                        "The auth token is not valid. Please try to log out and in again.",
+                    ),
+                },
+                oidc_jwt_validator::ValidationError::CacheError => {
+                    Self::new_internal_server_error()
                 }
             },
-            Error::PassNotFound => Self::NotFound,
-            Error::HttpStatus(sc) => Self::StatusCode(sc),
-            Error::InvalidRequest(message) => Self::BadRequest(Some(message)),
-            Error::InvalidAmountOfPoints => {
-                Self::BadRequest(Some("invalid amount of points".into()))
-            }
-            Error::AxumPathRejection(rejection) => Self::Extractor(rejection.into_response()),
-            Error::AxumJsonRejection(rejection) => Self::Extractor(rejection.into_response()),
+            Error::PassNotFound => Self {
+                error_name: "PassNotFound",
+                error_details: Some("this pass does not exist".into()),
+                status: StatusCode::NOT_FOUND,
+                request_id: None,
+                client_message: Some("the pass you search for does not exist."),
+            },
+            Error::InvalidRequest(message) => Self {
+                error_name: "InvalidRequest",
+                error_details: Some(message.into()),
+                status: StatusCode::BAD_REQUEST,
+                request_id: None,
+                client_message: None,
+            },
+            Error::InvalidAmountOfPoints => Self {
+                error_name: "InvalidAmountOfPoints",
+                error_details: Some("the amount of points entered are not valid".into()),
+                status: StatusCode::BAD_REQUEST,
+                request_id: None,
+                client_message: Some("The amount of points entered are not valid. Are they maybe lower / higher than possible?"),
+            },
+            Error::AxumPathRejection(rejection) => {
+                Self {
+                    error_name: "PathRejection",
+                    request_id: None,
+                    status: rejection.status(),
+                    client_message: None,
+                    error_details: Some(rejection.body_text().into()),
+                }
+            },
+            Error::AxumJsonRejection(rejection) =>{
+                Self {
+                    error_name: "JsonRejection",
+                    request_id: None,
+                    status: rejection.status(),
+                    client_message: None,
+                    error_details: Some(rejection.body_text().into()),
+                }
+            },
             Error::AxumTypedHeaderRejection(rejection) => {
-                Self::Extractor(rejection.into_response())
-            }
+                Self {
+                    error_name: "HeaderRejection",
+                    request_id: None,
+                    status: StatusCode::BAD_REQUEST,
+                    client_message: None,
+                    error_details: Some(rejection.to_string().into()),
+                }
+            },
         }
     }
 }
 
-#[derive(serde::Serialize)]
-pub struct ClientErrorResponseMessage {
-    pub message: String,
-}
-
-pub struct ClientErrorResponse {
-    message: Option<String>,
-
-    status_code: Option<StatusCode>,
-}
-
-impl ClientErrorResponse {
-    pub fn new() -> Self {
-        Self {
-            message: None,
-            status_code: None,
-        }
-    }
-
-    pub fn with_message(mut self, message: impl ToString) -> Self {
-        self.message = Some(message.to_string());
-        self
-    }
-
-    pub fn with_optional_message(mut self, message: Option<impl ToString>) -> Self {
-        self.message = message.map(|m| m.to_string());
-        self
-    }
-
-    pub fn with_status_code(mut self, status_code: StatusCode) -> Self {
-        self.status_code = Some(status_code);
-        self
-    }
-}
-
-impl IntoResponse for ClientErrorResponse {
+impl IntoResponse for ClientError {
     fn into_response(self) -> axum::response::Response {
-        match (self.message, self.status_code) {
-            (None, None) => ().into_response(),
-            (Some(message), None) => Json(ClientErrorResponseMessage { message }).into_response(),
-            (None, Some(status_code)) => status_code.into_response(),
-            (Some(message), Some(status_code)) => {
-                (status_code, Json(ClientErrorResponseMessage { message })).into_response()
-            }
-        }
+        let status = self.status;
+        let mut res = axum::Json(self).into_response();
+        *res.status_mut() = status;
+        res
     }
 }

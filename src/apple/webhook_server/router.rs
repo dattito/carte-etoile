@@ -1,14 +1,12 @@
-use axum::{
-    routing::{get, post},
-    Router,
-};
+use aide::axum::ApiRouter;
+use axum::routing::{get, post};
 
 use crate::http::AppState;
 
 use super::{handler, middleware::check_pass_auth};
 
-pub fn router(state: AppState) -> Router {
-    Router::new()
+pub fn router(state: AppState) -> ApiRouter {
+    ApiRouter::new()
         .route(
             "/v1/devices/:device_library_id/registrations/:pass_type_id/:serial_number",
             post(handler::handle_device_registration)

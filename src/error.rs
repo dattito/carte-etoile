@@ -1,6 +1,5 @@
 use axum::{
     extract::rejection::{JsonRejection, PathRejection},
-    http::StatusCode,
     response::IntoResponse,
 };
 use axum_extra::typed_header::TypedHeaderRejection;
@@ -41,9 +40,6 @@ pub enum Error {
     #[error("openssl error: {0}")]
     OpenSsl(#[from] openssl::error::ErrorStack),
 
-    #[error("status error: {0}")]
-    HttpStatus(StatusCode),
-
     #[error("apple apn error: {0}")]
     AppleApn(#[from] a2::Error),
 
@@ -64,12 +60,6 @@ pub enum Error {
 
     #[error("env error: {0}")]
     Env(#[from] envy::Error),
-}
-
-impl From<StatusCode> for Error {
-    fn from(value: StatusCode) -> Self {
-        Self::HttpStatus(value)
-    }
 }
 
 impl IntoResponse for Error {
