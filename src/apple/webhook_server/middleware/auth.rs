@@ -1,6 +1,5 @@
 use axum::{
     extract::{Path, Request, State},
-    http::StatusCode,
     middleware::Next,
     response::Response,
 };
@@ -23,7 +22,7 @@ pub async fn check_pass_auth(
     next: Next,
 ) -> Result<Response, Error> {
     if !correct_serial_number_auth_token(&serial_number, &auth_token, &state.db_pool).await? {
-        return Err(Error::HttpStatus(StatusCode::EXPECTATION_FAILED));
+        return Err(Error::PassNotFound);
     }
 
     Ok(next.run(req).await)

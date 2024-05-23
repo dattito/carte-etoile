@@ -1,24 +1,23 @@
-ARG RUST_VERSION=1.76.0
-ARG BINARY_NAME=server
-
-FROM ghcr.io/dattito/rust-alpine-mimalloc:$RUST_VERSION AS chef 
-RUN cargo install cargo-chef 
-WORKDIR /app
-
-FROM chef as planner
+FROM clux/muslrust:stable AS planner
+RUN cargo install cargo-chef
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM chef as builder
-ARG BINARY_NAME
-COPY --from=planner /app/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
+
+FROM clux/muslrust:stable AS cacher
+RUN cargo install cargo-chef
+COPY --from=planner /volume/recipe.json recipe.json
+RUN cargo chef cook --release --target aarch64-unknown-linux-musl --recipe-path recipe.json
+
+
+FROM clux/muslrust:stable AS builder
 COPY . .
-RUN cargo build --release --bin $BINARY_NAME
+COPY --from=cacher /volume/target target
+COPY --from=cacher /root/.cargo /root/.cargo
+RUN cargo build --bin server --release --target aarch64-unknown-linux-musl
 
-FROM scratch AS runtime 
-ARG BINARY_NAME
-COPY --from=builder /app/target/*-unknown-linux-musl/release/$BINARY_NAME /app
-EXPOSE 3000
-ENTRYPOINT ["/app"]
 
+# Need cacerts
+FROM gcr.io/distroless/static:nonroot
+COPY --from=builder --chown=nonroot:nonroot /volume/target/aarch64-unknown-linux-musl/release/server /app/server
+ENTRYPOINT ["/app/server"]

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+mod client_error;
 mod handler;
 mod middleware;
 mod router;
@@ -8,6 +9,8 @@ pub use router::start;
 use sqlx::PgPool;
 
 use crate::{app::App, apple::ApnClient};
+
+pub use client_error::ClientError;
 
 pub use self::middleware::{OidcSub, OidcValidator};
 
