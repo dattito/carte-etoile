@@ -1,6 +1,9 @@
+use aide::transform::TransformOperation;
 use axum::extract::{Path, Query, State};
 use axum::Json;
 use chrono::{DateTime, Utc};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use serde_with::formats::Flexible;
 use serde_with::TimestampMilliSeconds;
 
@@ -8,23 +11,26 @@ use crate::http::AppState;
 use crate::Result;
 
 #[serde_with::serde_as]
-#[derive(serde::Serialize)]
+#[derive(JsonSchema, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Res {
     serial_numbers: Vec<String>,
+    #[schemars(with = "DateTime<Utc>")]
     #[serde_as(as = "TimestampMilliSeconds<String, Flexible>")]
     last_updated: DateTime<Utc>,
 }
 
+#[derive(Deserialize, JsonSchema)]
 #[serde_with::serde_as]
-#[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[schemars(rename = "AppleWebhookListUpdatablePassesQueryParams")]
 pub struct QueryParams {
     #[serde_as(as = "Option<TimestampMilliSeconds<String, Flexible>>")]
     pub passes_updated_since: Option<DateTime<Utc>>,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize, JsonSchema)]
+#[schemars(rename = "AppleWebhookListUpdatablePassesPathParams")]
 pub struct PathParams {
     pub device_library_id: String,
     pub pass_type_id: String,
@@ -50,4 +56,18 @@ pub async fn handle_list_updatable_passes(
         serial_numbers,
         last_updated,
     }))
+}
+
+pub fn handle_list_updatable_passes_docs(op: TransformOperation) -> TransformOperation {
+    op.description("List all updatable passes")
+        .response_with::<200, Json<Res>, _>(|res| {
+            res.example(Res {
+                last_updated: DateTime::from_timestamp_millis(1716553998000).unwrap(),
+                serial_numbers: vec![
+                    "b26a2ede-9a73-439f-b044-60ea35185c3e".into(),
+                    "ce69817f-d832-4747-b7a6-f6e4c8fb3279".into(),
+                ],
+            })
+        })
+        .tag("Apple Webhooks")
 }

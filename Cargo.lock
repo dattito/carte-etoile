@@ -80,6 +80,7 @@ version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b0e3b97a21e41ec5c19bfd9b4fc1f7086be104f8b988681230247ffc91cc8ed"
 dependencies = [
+ "aide-macros",
  "axum",
  "axum-extra",
  "bytes",
@@ -94,6 +95,18 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "aide-macros"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0487f8598afe49e6bc950a613a678bd962c4a6f431022ded62643c8b990301a"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.60",
 ]
 
 [[package]]
@@ -425,6 +438,7 @@ dependencies = [
  "fastrand",
  "futures",
  "image",
+ "indexmap 2.2.6",
  "oidc-jwt-validator",
  "openssl",
  "passes",
@@ -2467,6 +2481,7 @@ version = "0.8.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0218ceea14babe24a4a5836f86ade86c1effbc198164e619194cb5069187e29"
 dependencies = [
+ "chrono",
  "dyn-clone",
  "indexmap 2.2.6",
  "schemars_derive",

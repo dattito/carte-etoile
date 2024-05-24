@@ -1,16 +1,28 @@
+use aide::{
+    gen::GenContext,
+    openapi::{
+        HeaderStyle, Operation, Parameter, ParameterData, ParameterSchemaOrContent, SchemaObject,
+    },
+    operation::add_parameters,
+    OperationInput,
+};
 use axum::{
     async_trait,
     extract::FromRequestParts,
     http::{request::Parts, HeaderValue},
 };
+use axum_extra::headers::Header;
 use axum_extra::{
     headers::{authorization::Credentials, Authorization},
     TypedHeader,
 };
+use indexmap::IndexMap;
 
 use crate::error::Error;
 
 pub struct AuthToken(pub String);
+
+type ApplePassTypedHeader = Authorization<ApplePass>;
 
 #[async_trait]
 impl<S> FromRequestParts<S> for AuthToken
@@ -20,10 +32,38 @@ where
     type Rejection = Error;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let TypedHeader(Authorization(b)): TypedHeader<Authorization<ApplePass>> =
+        let TypedHeader(Authorization(b)): TypedHeader<ApplePassTypedHeader> =
             TypedHeader::from_request_parts(parts, state).await?;
 
         Ok(Self(b.token().into()))
+    }
+}
+
+impl OperationInput for AuthToken {
+    fn operation_input(ctx: &mut GenContext, operation: &mut Operation) {
+        let s = ctx.schema.subschema_for::<String>();
+        add_parameters(
+            ctx,
+            operation,
+            [Parameter::Header {
+                parameter_data: ParameterData {
+                    name: ApplePassTypedHeader::name().to_string(),
+                    description: Some("The auth token that the apple device uses to authenticate on our services".into()),
+                    required: true,
+                    format: ParameterSchemaOrContent::Schema(SchemaObject {
+                        json_schema: s,
+                        example: None,
+                        external_docs: None,
+                    }),
+                    extensions: Default::default(),
+                    deprecated: None,
+                    example: Some("ApplePass ...".into()),
+                    examples: IndexMap::default(),
+                    explode: None,
+                },
+                style: HeaderStyle::Simple,
+            }],
+        );
     }
 }
 

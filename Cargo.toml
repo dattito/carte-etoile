@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 a2 = {version="0.10.0", features=["tracing"] } 
-aide = { version = "0.13.4", features = ["axum", "axum-extra", "serde_qs", "redoc", "scalar"] }
+aide = { version = "0.13.4", features = ["axum", "axum-extra", "serde_qs", "redoc", "scalar", "macros", "axum-headers"] }
 axum = { version = "0.7.5", features = ["tracing", "json"] }
 axum-extra = { version = "0.9.3", features = ["typed-header"] }
 chrono = "0.4.38"
@@ -16,11 +16,12 @@ envy = "0.4.2"
 fastrand = "2.1.0"
 futures = "0.3.30"
 image = "0.25.1"
+indexmap = "2.2.6"
 oidc-jwt-validator = "0.2.3"
 openssl = "0.10.64"
 passes = "1.0.1"
 reqwest = "0.11.27"
-schemars = {version="0.8.20", features=["uuid1"]}
+schemars = {version="0.8.20", features=["uuid1", "chrono"]}
 serde = { version = "1.0.198", features = ["derive", "rc"] }
 serde_json = "1.0.116"
 serde_with = { version = "3.8.0", features = ["chrono"] }

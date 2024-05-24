@@ -1,13 +1,15 @@
+use aide::transform::TransformOperation;
 use axum::{
     body::Body,
     extract::{Path, State},
     http::{header, HeaderName},
 };
 
-use crate::{http::AppState, wallet::body_from_package, Result};
+use crate::{apple::webhook_server::extractors::AuthToken, http::AppState, wallet::body_from_package, Result};
 
 pub async fn handle_get_pass(
     State(state): State<AppState>,
+    _: AuthToken,
     Path((_, serial_number)): Path<(String, String)>,
 ) -> Result<([(HeaderName, &'static str); 2], Body)> {
     let mut wallet_pass = state.app.pass_package(&serial_number).await?;
@@ -23,4 +25,8 @@ pub async fn handle_get_pass(
     ];
 
     Ok((headers, body))
+}
+
+pub fn handle_get_pass_docs(op: TransformOperation) -> TransformOperation {
+    op.description("Download a specific pass").tag("Apple Webhooks").response::<200, ()>()
 }
