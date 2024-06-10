@@ -59,10 +59,10 @@ pub async fn start(host: &str, state: AppState) -> Result<()> {
                 handler::handle_get_loyality_pass_docs,
             ),
         )
-        // .layer(axum::middleware::from_fn_with_state(
-        //     state.clone(),
-        //     oidc_auth,
-        // ))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            oidc_auth,
+        ))
         .api_route(
             "/health",
             get_with(handler::handle_health, handler::handle_health_docs),
