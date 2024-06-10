@@ -2,11 +2,14 @@ use aide::axum::{
     routing::{get_with, post_with},
     ApiRouter,
 };
+use axum::routing::get;
 
 use crate::http::AppState;
 
 use super::{
-    handler::{self, handle_device_deregistration_docs, handle_device_registration_docs, handle_log_docs},
+    handler::{
+        self, handle_device_deregistration_docs, handle_device_registration_docs, handle_log_docs,
+    },
     middleware::check_pass_auth,
 };
 
@@ -35,10 +38,13 @@ pub fn router(state: AppState) -> ApiRouter {
             state.clone(),
             check_pass_auth,
         ))
-        .api_route(
+        .route(
             "/v1/devices/:device_library_id/registrations/:pass_type_id",
-            get_with(handler::handle_list_updatable_passes, handler::handle_list_updatable_passes_docs),
+            get(
+                handler::handle_list_updatable_passes,
+                // handler::handle_list_updatable_passes_docs,
+            ),
         )
-        .api_route("/v1/log", post_with(handler::handle_log,handle_log_docs))
+        .api_route("/v1/log", post_with(handler::handle_log, handle_log_docs))
         .with_state(state)
 }

@@ -3,7 +3,7 @@ use axum::{extract::State, http::StatusCode};
 
 use crate::{
     apple::webhook_server::extractors::{
-        AuthToken, DeviceLibraryId, DeviceRegistrationPushToken, SerialNumber
+        AuthToken, DeviceLibraryId, DeviceRegistrationPushToken, SerialNumber,
     },
     http::AppState,
     Result,

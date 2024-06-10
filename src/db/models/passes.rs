@@ -52,8 +52,11 @@ impl DbPassTypeLoyality {
 
         let mut transaction = conn.begin().await?;
         sqlx::query("UPDATE pass_type_loyality SET current_points=current_points+$1, last_used_at=$2 WHERE serial_number=$3")
-        .bind(points)
-            .bind(now).bind(serial_number).execute(&mut *transaction).await?;
+            .bind(points)
+            .bind(now)
+            .bind(serial_number)
+            .execute(&mut *transaction)
+            .await?;
 
         sqlx::query("UPDATE passes SET last_updated_at=$1 WHERE serial_number=$2")
             .bind(now)
@@ -62,6 +65,17 @@ impl DbPassTypeLoyality {
             .await?;
 
         transaction.commit().await?;
+
+        Ok(())
+    }
+
+    pub async fn redeem_bonus(serial_number: &str, conn: &PgPool) -> Result<(), sqlx::Error> {
+        let now = Utc::now().naive_utc();
+
+        sqlx::query("UPDATE pass_type_loyality SET current_points=0, already_redeemed=already_redeemed+1, last_used_at=$1 WHERE serial_number=$2")
+        .bind(now)
+        .bind(serial_number)
+            .execute(conn).await?;
 
         Ok(())
     }

@@ -1,4 +1,9 @@
-use aide::{gen::GenContext, openapi::{MediaType, Operation, RequestBody, SchemaObject}, operation::set_body, OperationInput};
+use aide::{
+    gen::GenContext,
+    openapi::{MediaType, Operation, RequestBody, SchemaObject},
+    operation::set_body,
+    OperationInput,
+};
 use axum::{
     async_trait,
     extract::{FromRequest, FromRequestParts, Path, Request},

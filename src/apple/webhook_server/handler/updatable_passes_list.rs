@@ -3,6 +3,7 @@ use axum::extract::{Path, Query, State};
 use axum::Json;
 use chrono::{DateTime, Utc};
 use schemars::JsonSchema;
+use schemars;
 use serde::{Deserialize, Serialize};
 use serde_with::formats::Flexible;
 use serde_with::TimestampMilliSeconds;
@@ -11,20 +12,21 @@ use crate::http::AppState;
 use crate::Result;
 
 #[serde_with::serde_as]
-#[derive(JsonSchema, Serialize)]
+#[derive(JsonSchema, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Res {
     serial_numbers: Vec<String>,
-    #[schemars(with = "DateTime<Utc>")]
     #[serde_as(as = "TimestampMilliSeconds<String, Flexible>")]
+    #[schemars(with = "DateTime<Utc>")]
     last_updated: DateTime<Utc>,
 }
 
-#[derive(Deserialize, JsonSchema)]
 #[serde_with::serde_as]
+#[derive(Deserialize)]
+//#[schemars(rename = "AppleWebhookListUpdatablePassesQueryParams")]
 #[serde(rename_all = "camelCase")]
-#[schemars(rename = "AppleWebhookListUpdatablePassesQueryParams")]
 pub struct QueryParams {
+    //#[schemars(with = "DateTime<Utc>")]
     #[serde_as(as = "Option<TimestampMilliSeconds<String, Flexible>>")]
     pub passes_updated_since: Option<DateTime<Utc>>,
 }

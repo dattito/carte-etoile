@@ -2,6 +2,10 @@ fn default_http_listener_host() -> String {
     "127.0.0.1:3000".into()
 }
 
+fn default_http_disable_auth() -> bool {
+    false
+}
+
 #[derive(serde::Deserialize, Debug)]
 pub struct AppConfig {
     #[serde(default = "default_http_listener_host")]
@@ -20,6 +24,8 @@ pub struct AppConfig {
     pub background_image_path: String,
     pub point_image_path: String,
     pub oidc_url: String,
+    #[serde(default = "default_http_disable_auth")]
+    pub http_disable_auth: bool,
 }
 
 impl AppConfig {

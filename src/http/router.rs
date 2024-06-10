@@ -45,10 +45,24 @@ pub async fn start(host: &str, state: AppState) -> Result<()> {
                 handler::handle_add_points_to_loyality_card_docs,
             ),
         )
-        .layer(axum::middleware::from_fn_with_state(
-            state.clone(),
-            oidc_auth,
-        ))
+        .api_route(
+            "/passes/:serial_number/loyality/bonus",
+            post_with(
+                handler::handle_loyality_card_redeem_bonus,
+                handler::handle_loyality_card_redeem_bonus_docs,
+            ),
+        )
+        .api_route(
+            "/passes/:serial_number/loyality",
+            get_with(
+                handler::handle_get_loyality_pass,
+                handler::handle_get_loyality_pass_docs,
+            ),
+        )
+        // .layer(axum::middleware::from_fn_with_state(
+        //     state.clone(),
+        //     oidc_auth,
+        // ))
         .api_route(
             "/health",
             get_with(handler::handle_health, handler::handle_health_docs),
@@ -111,8 +125,8 @@ fn api_docs(api: TransformOpenApi) -> TransformOpenApi {
             ..Default::default()
         })
         .tag(Tag {
-            name: "Admin Passes".into(),
-            description: Some("Endpoints important for admins".into()),
+            name: "Shop Operator".into(),
+            description: Some("Endpoints important for shop operators".into()),
             ..Default::default()
         })
         .security_scheme(

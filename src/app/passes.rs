@@ -1,6 +1,7 @@
 use ::futures::future::join_all;
 use chrono::{TimeZone, Utc};
 use passes::Package;
+use tracing::info;
 
 use crate::{
     db::{
@@ -90,19 +91,36 @@ impl App {
         pass_serial_number: &str,
         points: i32,
     ) -> Result<()> {
-        let loyality_pass_option =
+        let pass =
             DbPassTypeLoyality::from_serial_number_optional(pass_serial_number, &self.db_pool)
-                .await?;
+                .await?
+                .ok_or(Error::PassNotFound)?;
 
-        if let Some(pass) = loyality_pass_option {
-            if (pass.total_points - pass.current_points) < points || points == 0 {
-                return Err(Error::InvalidAmountOfPoints);
-            }
-        } else {
-            return Err(Error::Other("this serial number does not exist".into()));
+        if (pass.total_points - pass.current_points) < points || points == 0 {
+            return Err(Error::InvalidAmountOfPoints);
         }
 
         DbPassTypeLoyality::add_points(pass_serial_number, points, &self.db_pool).await?;
+
+        self.send_update_pass_notification(pass_serial_number)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn pass_loyality_redeem_bonus(&self, pass_serial_number: &str) -> Result<()> {
+        let pass =
+            DbPassTypeLoyality::from_serial_number_optional(pass_serial_number, &self.db_pool)
+                .await?
+                .ok_or(Error::PassNotFound)?;
+
+        if pass.total_points != pass.current_points {
+            return Err(Error::InvalidAmountOfPoints);
+        }
+
+        DbPassTypeLoyality::redeem_bonus(pass_serial_number, &self.db_pool).await?;
+
+        info!("Pass {pass_serial_number} successfully redeemed bonus");
 
         self.send_update_pass_notification(pass_serial_number)
             .await?;

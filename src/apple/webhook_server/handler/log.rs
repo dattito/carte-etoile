@@ -5,5 +5,7 @@ pub async fn handle_log(body: String) {
 }
 
 pub fn handle_log_docs(op: TransformOperation) -> TransformOperation {
-    op.description("Device Logs").response::<200, ()>().tag("Apple Webhooks")
+    op.description("Device Logs")
+        .response::<200, ()>()
+        .tag("Apple Webhooks")
 }

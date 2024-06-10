@@ -5,7 +5,9 @@ use axum::{
     http::{header, HeaderName},
 };
 
-use crate::{apple::webhook_server::extractors::AuthToken, http::AppState, wallet::body_from_package, Result};
+use crate::{
+    apple::webhook_server::extractors::AuthToken, http::AppState, wallet::body_from_package, Result,
+};
 
 pub async fn handle_get_pass(
     State(state): State<AppState>,
@@ -28,5 +30,7 @@ pub async fn handle_get_pass(
 }
 
 pub fn handle_get_pass_docs(op: TransformOperation) -> TransformOperation {
-    op.description("Download a specific pass").tag("Apple Webhooks").response::<200, ()>()
+    op.description("Download a specific pass")
+        .tag("Apple Webhooks")
+        .response::<200, ()>()
 }

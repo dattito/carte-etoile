@@ -37,7 +37,7 @@ pub struct TokenClaims {
 
 impl OidcValidator {
     pub async fn new(oidc_issuer: String) -> Result<Self, FetchError> {
-        let client = reqwest::ClientBuilder::new()
+        let client = reqwest11::ClientBuilder::new()
             .timeout(Duration::from_secs(2))
             .build()
             .unwrap();

@@ -48,7 +48,10 @@ impl OperationInput for AuthToken {
             [Parameter::Header {
                 parameter_data: ParameterData {
                     name: ApplePassTypedHeader::name().to_string(),
-                    description: Some("The auth token that the apple device uses to authenticate on our services".into()),
+                    description: Some(
+                        "The auth token that the apple device uses to authenticate on our services"
+                            .into(),
+                    ),
                     required: true,
                     format: ParameterSchemaOrContent::Schema(SchemaObject {
                         json_schema: s,

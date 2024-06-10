@@ -53,7 +53,5 @@ async fn main() -> Result<()> {
         oidc_validator,
     });
 
-    http::start(&config.http_listener_host, state).await?;
-
-    Ok(())
+    http::start(&config.http_listener_host, state).await
 }
