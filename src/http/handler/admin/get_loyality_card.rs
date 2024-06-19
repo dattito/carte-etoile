@@ -5,7 +5,7 @@ use axum::{
 };
 use chrono::{DateTime, TimeZone, Utc};
 
-use crate::{db::DbPassTypeLoyality, http::AppState, Error, Result};
+use crate::{http::AppState, Result};
 
 #[derive(serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -23,22 +23,21 @@ pub struct GetLoyalityPassPathParams {
     pub serial_number: String,
 }
 
-
 pub async fn handle_get_loyality_pass(
     State(state): State<AppState>,
-    Path(GetLoyalityPassPathParams {serial_number}): Path<GetLoyalityPassPathParams>,
+    Path(GetLoyalityPassPathParams { serial_number }): Path<GetLoyalityPassPathParams>,
 ) -> Result<Json<GetLoyalityPassResponse>> {
-    let a = DbPassTypeLoyality::from_serial_number_optional(&serial_number, &state.db_pool)
-        .await?
-        .ok_or(Error::PassNotFound)?;
+    let loyality_pass = state.app.get_loyality_pass(&serial_number).await?;
 
     Ok(Json(GetLoyalityPassResponse {
-        serial_number: a.serial_number,
-        already_redeemed: a.already_redeemed,
-        total_points: a.total_points,
-        current_points: a.current_points,
-        pass_holder_name: a.pass_holder_name,
-        last_used_at: a.last_used_at.map(|d| Utc.from_utc_datetime(&d)),
+        serial_number: loyality_pass.serial_number,
+        already_redeemed: loyality_pass.already_redeemed,
+        total_points: loyality_pass.total_points,
+        current_points: loyality_pass.current_points,
+        pass_holder_name: loyality_pass.pass_holder_name,
+        last_used_at: loyality_pass
+            .last_used_at
+            .map(|d| Utc.from_utc_datetime(&d)),
     }))
 }
 

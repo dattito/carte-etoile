@@ -1,9 +1,8 @@
-use aide::transform::TransformOperation;
 use axum::extract::{Path, Query, State};
 use axum::Json;
 use chrono::{DateTime, Utc};
-use schemars::JsonSchema;
 use schemars;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_with::formats::Flexible;
 use serde_with::TimestampMilliSeconds;
@@ -60,16 +59,16 @@ pub async fn handle_list_updatable_passes(
     }))
 }
 
-pub fn handle_list_updatable_passes_docs(op: TransformOperation) -> TransformOperation {
-    op.description("List all updatable passes")
-        .response_with::<200, Json<Res>, _>(|res| {
-            res.example(Res {
-                last_updated: DateTime::from_timestamp_millis(1716553998000).unwrap(),
-                serial_numbers: vec![
-                    "b26a2ede-9a73-439f-b044-60ea35185c3e".into(),
-                    "ce69817f-d832-4747-b7a6-f6e4c8fb3279".into(),
-                ],
-            })
-        })
-        .tag("Apple Webhooks")
-}
+// pub fn handle_list_updatable_passes_docs(op: TransformOperation) -> TransformOperation {
+//     op.description("List all updatable passes")
+//         .response_with::<200, Json<Res>, _>(|res| {
+//             res.example(Res {
+//                 last_updated: DateTime::from_timestamp_millis(1716553998000).unwrap(),
+//                 serial_numbers: vec![
+//                     "b26a2ede-9a73-439f-b044-60ea35185c3e".into(),
+//                     "ce69817f-d832-4747-b7a6-f6e4c8fb3279".into(),
+//                 ],
+//             })
+//         })
+//         .tag("Apple Webhooks")
+// }

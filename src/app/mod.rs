@@ -3,7 +3,8 @@ use sqlx::PgPool;
 use crate::{apple::ApnClient, wallet::PassMaker};
 mod apple;
 mod config;
-mod passes;
+mod loyality_pass;
+mod pass;
 
 pub use config::AppConfig;
 

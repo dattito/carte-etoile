@@ -6,34 +6,13 @@ use aide::{
 };
 use axum::{
     async_trait,
-    extract::{FromRequest, FromRequestParts, Path, Request},
-    http::request::Parts,
-    Json, RequestExt, RequestPartsExt,
+    extract::{FromRequest, Request},
+    Json, RequestExt,
 };
 use indexmap::IndexMap;
 use schemars::JsonSchema;
 
 use crate::error::Error;
-
-#[derive(serde::Deserialize)]
-pub struct DeviceLibraryId {
-    pub device_library_id: String,
-}
-
-#[async_trait]
-impl<S> FromRequestParts<S> for DeviceLibraryId
-where
-    S: Send + Sync,
-{
-    type Rejection = Error;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let Path(s): Path<Self> = parts.extract_with_state(state).await?;
-        Ok(s)
-    }
-}
-
-impl OperationInput for DeviceLibraryId {}
 
 #[derive(serde::Deserialize, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -84,26 +63,3 @@ impl OperationInput for DeviceRegistrationPushToken {
         );
     }
 }
-
-pub struct SerialNumber(pub String);
-
-#[derive(serde::Deserialize)]
-struct SerialNumberPath {
-    pub serial_number: String,
-}
-
-#[async_trait]
-impl<S> FromRequestParts<S> for SerialNumber
-where
-    S: Send + Sync,
-{
-    type Rejection = Error;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let Path(p): Path<SerialNumberPath> = parts.extract_with_state(state).await?;
-
-        Ok(Self(p.serial_number))
-    }
-}
-
-impl OperationInput for SerialNumber {}

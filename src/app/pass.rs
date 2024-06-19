@@ -1,5 +1,5 @@
 use ::futures::future::join_all;
-use chrono::{TimeZone, Utc};
+use chrono::{NaiveDateTime, TimeZone, Utc};
 use passes::Package;
 use tracing::info;
 
@@ -55,10 +55,12 @@ impl App {
             },
         )?;
 
+        info!("added new pass!");
+
         Ok((wallet_pass, serial_number))
     }
 
-    pub async fn pass_package(&self, pass_serial_number: &str) -> Result<Package> {
+    pub async fn pass_package(&self, pass_serial_number: &str) -> Result<(Package, NaiveDateTime)> {
         let db_pass = DbPass::from_serial_number_optional(pass_serial_number, &self.db_pool)
             .await?
             .ok_or(Error::PassNotFound)?;
@@ -83,52 +85,13 @@ impl App {
             // _ => return Err(Error::Other("not implemented".into())),
         };
 
-        Ok(wallet_pass)
+        Ok((wallet_pass, db_pass.last_updated_at))
     }
 
-    pub async fn pass_loyality_add_points(
+    pub(super) async fn send_update_pass_notification(
         &self,
         pass_serial_number: &str,
-        points: i32,
     ) -> Result<()> {
-        let pass =
-            DbPassTypeLoyality::from_serial_number_optional(pass_serial_number, &self.db_pool)
-                .await?
-                .ok_or(Error::PassNotFound)?;
-
-        if (pass.total_points - pass.current_points) < points || points == 0 {
-            return Err(Error::InvalidAmountOfPoints);
-        }
-
-        DbPassTypeLoyality::add_points(pass_serial_number, points, &self.db_pool).await?;
-
-        self.send_update_pass_notification(pass_serial_number)
-            .await?;
-
-        Ok(())
-    }
-
-    pub async fn pass_loyality_redeem_bonus(&self, pass_serial_number: &str) -> Result<()> {
-        let pass =
-            DbPassTypeLoyality::from_serial_number_optional(pass_serial_number, &self.db_pool)
-                .await?
-                .ok_or(Error::PassNotFound)?;
-
-        if pass.total_points != pass.current_points {
-            return Err(Error::InvalidAmountOfPoints);
-        }
-
-        DbPassTypeLoyality::redeem_bonus(pass_serial_number, &self.db_pool).await?;
-
-        info!("Pass {pass_serial_number} successfully redeemed bonus");
-
-        self.send_update_pass_notification(pass_serial_number)
-            .await?;
-
-        Ok(())
-    }
-
-    async fn send_update_pass_notification(&self, pass_serial_number: &str) -> Result<()> {
         let push_tokens = push_tokens_from_serial_number(pass_serial_number, &self.db_pool).await?;
 
         let notification_results = join_all(
