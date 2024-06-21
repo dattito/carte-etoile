@@ -39,7 +39,11 @@ async fn main() -> Result<()> {
         config.pass_web_service_url,
         config.pass_logo_path,
         config.pass_icon_path,
-        ImageMaker::new(&config.background_image_path, &config.point_image_path)?,
+        ImageMaker::new(
+            &config.background_image_path,
+            &config.point_image_path,
+            &config.bonus_point_image_path,
+        )?,
     )?;
 
     let oidc_validator = OidcValidator::new(config.oidc_url).await?;

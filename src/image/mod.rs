@@ -9,13 +9,19 @@ static OPACITY_DISABLED: f32 = 0.20;
 pub struct ImageMaker {
     background_image: DynamicImage,
     point_image: DynamicImage,
+    bonus_point_image: DynamicImage,
 }
 
 impl ImageMaker {
-    pub fn new(background_image_path: &str, point_image_path: &str) -> ImageResult<Self> {
+    pub fn new(
+        background_image_path: &str,
+        point_image_path: &str,
+        bonus_point_image_path: &str,
+    ) -> ImageResult<Self> {
         Ok(Self {
             background_image: image::open(background_image_path)?,
             point_image: image::open(point_image_path)?,
+            bonus_point_image: image::open(bonus_point_image_path)?,
         })
     }
 
@@ -34,8 +40,13 @@ impl ImageMaker {
         let num_in_row = total_points / 2;
         let point_width = (img_width as f32 - (num_in_row as f32 + 1.0) * space_height as f32)
             / num_in_row as f32;
-        let point_enabled = self
-            .point_image
+        let point = if current_points == total_points {
+            &self.bonus_point_image
+        } else {
+            &self.point_image
+        };
+
+        let point_enabled = point
             .resize(
                 point_width as u32,
                 point_height,

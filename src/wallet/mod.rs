@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use openssl::rsa::Rsa;
 use passes::{
     barcode::{Barcode, BarcodeFormat},
-    fields::{self, DateStyle},
+    fields::{self, DateStyle, TextAlignment},
     resource,
     sign::{self, SignConfig},
     visual_appearance::{Color, VisualAppearance},
@@ -108,6 +108,15 @@ impl PassMaker {
                 &loyality_pass.already_redeemed.to_string(),
                 fields::ContentOptions {
                     label: "Bereits eingelöst".to_string().into(),
+                    text_alignment: Some(TextAlignment::Right),
+                    ..Default::default()
+                },
+            ))
+            .add_secondary_field(fields::Content::new(
+                "bonus",
+                "5,00€",
+                fields::ContentOptions {
+                    label: "Bonus".to_string().into(),
                     ..Default::default()
                 },
             ))

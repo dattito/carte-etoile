@@ -23,6 +23,7 @@ pub struct AppConfig {
     pub apn_signing_cert_p12_token: String,
     pub background_image_path: String,
     pub point_image_path: String,
+    pub bonus_point_image_path: String,
     pub oidc_url: String,
     #[serde(default = "default_http_disable_auth")]
     pub http_disable_auth: bool,
