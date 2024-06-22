@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nINSERT INTO devices\n(device_library_id, push_token, created_at, last_updated_at) \nVALUES\n($1, $2, $3, $4)\nON CONFLICT (device_library_id) \nDO UPDATE SET push_token = $2, last_updated_at = $4\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6035a21ee714fa789ee201e5020eea233bce993b7bd7504c9dda84edc8bda9a6"
+}

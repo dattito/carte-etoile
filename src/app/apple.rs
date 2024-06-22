@@ -21,7 +21,7 @@ impl App {
         let now = chrono::Utc::now().naive_utc();
         let mut transaction = self.db_pool.begin().await?;
 
-        sqlx::query(
+        sqlx::query!(
             "
 INSERT INTO devices
 (device_library_id, push_token, created_at, last_updated_at) 
@@ -30,15 +30,15 @@ VALUES
 ON CONFLICT (device_library_id) 
 DO UPDATE SET push_token = $2, last_updated_at = $4
 ",
+            device_library_id,
+            push_token,
+            now,
+            now
         )
-        .bind(device_library_id)
-        .bind(push_token)
-        .bind(now)
-        .bind(now)
         .execute(&mut *transaction)
         .await?;
 
-        sqlx::query(
+        sqlx::query!(
             "
 INSERT INTO device_pass_registrations
 (device_library_id, pass_serial_number, created_at)
@@ -47,10 +47,10 @@ VALUES
 ON CONFLICT (device_library_id, pass_serial_number)
 DO NOTHING
 ",
+            device_library_id,
+            serial_number,
+            now
         )
-        .bind(device_library_id)
-        .bind(serial_number)
-        .bind(now)
         .execute(&mut *transaction)
         .await?;
 

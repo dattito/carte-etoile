@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pass_type_loyality SET current_points=0, already_redeemed=already_redeemed+1, last_used_at=$1 WHERE serial_number=$2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamp",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "642eaf6c0e1b3dd22c3cbe764531bf490024564b11e25750910010ca7fb09c49"
+}

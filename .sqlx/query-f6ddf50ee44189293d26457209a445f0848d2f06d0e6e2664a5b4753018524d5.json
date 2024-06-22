@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM device_pass_registrations WHERE device_library_id=$1 AND pass_serial_number=$2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f6ddf50ee44189293d26457209a445f0848d2f06d0e6e2664a5b4753018524d5"
+}

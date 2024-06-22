@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM devices WHERE push_token=ANY($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e9cdfaf497eed8ba5b29a967b588e0a041270cdaac8ad14dc6888d66c3a4d17a"
+}

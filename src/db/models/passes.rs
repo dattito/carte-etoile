@@ -13,13 +13,14 @@ pub struct DbPassTypeLoyality {
 
 impl DbPassTypeLoyality {
     pub async fn insert(&self, conn: &PgPool) -> Result<PgQueryResult, sqlx::Error> {
-        sqlx::query("INSERT INTO pass_type_loyality (serial_number, already_redeemed, total_points, current_points, pass_holder_name, last_used_at) VALUES ($1, $2, $3, $4, $5, $6)")
-            .bind(self.serial_number.clone())
-            .bind(self.already_redeemed)
-            .bind(self.total_points)
-            .bind(self.current_points)
-            .bind(&self.pass_holder_name)
-            .bind(self.last_used_at)
+        sqlx::query!("INSERT INTO pass_type_loyality (serial_number, already_redeemed, total_points, current_points, pass_holder_name, last_used_at) VALUES ($1, $2, $3, $4, $5, $6)",
+    self.serial_number.clone(),
+    self.already_redeemed,
+    self.total_points,
+    self.current_points,
+    &self.pass_holder_name,
+    self.last_used_at,
+            )
             .execute(conn).await
     }
 
@@ -27,20 +28,26 @@ impl DbPassTypeLoyality {
         serial_number: &str,
         conn: &PgPool,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as("SELECT * FROM pass_type_loyality WHERE serial_number=$1")
-            .bind(serial_number)
-            .fetch_one(conn)
-            .await
+        sqlx::query_as!(
+            Self,
+            "SELECT * FROM pass_type_loyality WHERE serial_number=$1",
+            serial_number
+        )
+        .fetch_one(conn)
+        .await
     }
 
     pub async fn from_serial_number_optional(
         serial_number: &str,
         conn: &PgPool,
     ) -> Result<Option<Self>, sqlx::Error> {
-        sqlx::query_as("SELECT * FROM pass_type_loyality WHERE serial_number=$1")
-            .bind(serial_number)
-            .fetch_optional(conn)
-            .await
+        sqlx::query_as!(
+            Self,
+            "SELECT * FROM pass_type_loyality WHERE serial_number=$1",
+            serial_number,
+        )
+        .fetch_optional(conn)
+        .await
     }
 
     pub async fn add_points(
@@ -51,18 +58,17 @@ impl DbPassTypeLoyality {
         let now = Utc::now().naive_utc();
 
         let mut transaction = conn.begin().await?;
-        sqlx::query("UPDATE pass_type_loyality SET current_points=current_points+$1, last_used_at=$2 WHERE serial_number=$3")
-            .bind(points)
-            .bind(now)
-            .bind(serial_number)
+        sqlx::query!("UPDATE pass_type_loyality SET current_points=current_points+$1, last_used_at=$2 WHERE serial_number=$3", points, now, serial_number)
             .execute(&mut *transaction)
             .await?;
 
-        sqlx::query("UPDATE passes SET last_updated_at=$1 WHERE serial_number=$2")
-            .bind(now)
-            .bind(serial_number)
-            .execute(&mut *transaction)
-            .await?;
+        sqlx::query!(
+            "UPDATE passes SET last_updated_at=$1 WHERE serial_number=$2",
+            now,
+            serial_number
+        )
+        .execute(&mut *transaction)
+        .await?;
 
         transaction.commit().await?;
 
@@ -72,9 +78,7 @@ impl DbPassTypeLoyality {
     pub async fn redeem_bonus(serial_number: &str, conn: &PgPool) -> Result<(), sqlx::Error> {
         let now = Utc::now().naive_utc();
 
-        sqlx::query("UPDATE pass_type_loyality SET current_points=0, already_redeemed=already_redeemed+1, last_used_at=$1 WHERE serial_number=$2")
-        .bind(now)
-        .bind(serial_number)
+        sqlx::query!("UPDATE pass_type_loyality SET current_points=0, already_redeemed=already_redeemed+1, last_used_at=$1 WHERE serial_number=$2", now, serial_number)
             .execute(conn).await?;
 
         Ok(())
@@ -133,23 +137,26 @@ pub struct DbPass {
 
 impl DbPass {
     pub async fn exists(serial_number: &str, conn: &PgPool) -> Result<bool, sqlx::Error> {
-        sqlx::query_scalar("SELECT EXISTS ( SELECT 1 FROM passes WHERE serial_number=$1)")
-            .bind(serial_number)
-            .fetch_one(conn)
-            .await
+        Ok(sqlx::query_scalar!(
+            "SELECT EXISTS ( SELECT 1 FROM passes WHERE serial_number=$1)",
+            serial_number
+        )
+        .fetch_one(conn)
+        .await?
+        .unwrap_or(false))
     }
 
     pub async fn insert(&self, conn: &PgPool) -> Result<PgQueryResult, sqlx::Error> {
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO passes (serial_number, pass_type_id, auth_token, created_at, last_updated_at, type) VALUES ($1, $2, $3, $4, $5, $6)",
+            &self.serial_number,
+            &self.pass_type_id,
+            &self.auth_token,
+            self.created_at,
+            self.last_updated_at,
+            self.r#type.clone() as _
         )
-        .bind(&self.serial_number)
-        .bind(&self.pass_type_id)
-        .bind(&self.auth_token)
-        .bind(self.created_at)
-        .bind(self.last_updated_at)
-        .bind(self.r#type.clone())
-        .execute(conn).await
+            .execute(conn).await
     }
 
     pub async fn from_serial_number(
@@ -166,10 +173,13 @@ impl DbPass {
         serial_number: &str,
         conn: &PgPool,
     ) -> Result<Option<Self>, sqlx::Error> {
-        sqlx::query_as::<_, _>("SELECT * FROM passes WHERE serial_number=$1")
-            .bind(serial_number)
-            .fetch_optional(conn)
-            .await
+        sqlx::query_as!(
+            Self,
+            "SELECT serial_number, auth_token, created_at, last_updated_at, pass_type_id, type as \"type: _\" FROM passes WHERE serial_number=$1",
+            serial_number
+        )
+        .fetch_optional(conn)
+        .await
     }
 
     pub async fn from_pass_type_last_updated_device_library_id(
@@ -179,37 +189,34 @@ impl DbPass {
         conn: &PgPool,
     ) -> Result<Vec<Self>, sqlx::Error> {
         if let Some(lu) = last_updated_at {
-            sqlx::query_as::<_, Self>(
-            "SELECT * FROM passes p INNER JOIN device_pass_registrations dpr ON p.serial_number=dpr.pass_serial_number WHERE pass_type_id=$1 AND device_library_id=$2 AND last_updated_at>=$3",
+            sqlx::query_as!(
+                Self,
+            "SELECT serial_number, auth_token, p.created_at, last_updated_at, pass_type_id, type as \"type: _\" FROM passes p INNER JOIN device_pass_registrations dpr ON p.serial_number=dpr.pass_serial_number WHERE pass_type_id=$1 AND device_library_id=$2 AND last_updated_at>=$3", pass_type_id, device_library_id, lu
         )
-        .bind(pass_type_id)
-        .bind(device_library_id)
-        .bind(lu)
         .fetch_all(conn)
         .await
         } else {
-            sqlx::query_as::<_, Self>(
-            "SELECT * FROM passes p INNER JOIN device_pass_registrations dpr ON p.serial_number=dpr.pass_serial_number WHERE pass_type_id=$1 AND device_library_id=$2",
+            sqlx::query_as!(
+                Self,
+            "SELECT serial_number, auth_token, p.created_at, last_updated_at, pass_type_id, type as \"type: _\" FROM passes p INNER JOIN device_pass_registrations dpr ON p.serial_number=dpr.pass_serial_number WHERE pass_type_id=$1 AND device_library_id=$2", pass_type_id, device_library_id,
         )
-        .bind(pass_type_id)
-        .bind(device_library_id)
         .fetch_all(conn)
         .await
         }
     }
 
     pub async fn count_of_devices(serial_number: &str, conn: &PgPool) -> Result<i64, sqlx::Error> {
-        sqlx::query_scalar(
+        Ok(sqlx::query_scalar!(
             "SELECT COUNT(*) FROM device_pass_registrations WHERE pass_serial_number = $1",
+            serial_number
         )
-        .bind(serial_number)
         .fetch_one(conn)
-        .await
+        .await?
+        .unwrap_or(0))
     }
 
     pub async fn delete(serial_number: &str, conn: &PgPool) -> Result<(), sqlx::Error> {
-        sqlx::query("DELETE FROM passes WHERE serial_number=$1")
-            .bind(serial_number)
+        sqlx::query!("DELETE FROM passes WHERE serial_number=$1", serial_number)
             .execute(conn)
             .await?;
 

@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO pass_type_loyality (serial_number, already_redeemed, total_points, current_points, pass_holder_name, last_used_at) VALUES ($1, $2, $3, $4, $5, $6)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Varchar",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "be62a6935be2c2d9442e887b35f04c2c7bc2acc141da83d8f0d03595758debc2"
+}

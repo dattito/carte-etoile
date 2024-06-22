@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM pass_type_loyality WHERE serial_number=$1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "serial_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "already_redeemed",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "total_points",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "current_points",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "pass_holder_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "last_used_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "685c087f7e76fd0842aed647001343f698cd035fcc8ccb13b9fb3f5c14baeb32"
+}

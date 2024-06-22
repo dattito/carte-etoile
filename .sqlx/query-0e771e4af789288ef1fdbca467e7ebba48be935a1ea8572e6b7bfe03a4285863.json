@@ -1,0 +1,63 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT serial_number, auth_token, p.created_at, last_updated_at, pass_type_id, type as \"type: _\" FROM passes p INNER JOIN device_pass_registrations dpr ON p.serial_number=dpr.pass_serial_number WHERE pass_type_id=$1 AND device_library_id=$2 AND last_updated_at>=$3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "serial_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "auth_token",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "last_updated_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 4,
+        "name": "pass_type_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "type: _",
+        "type_info": {
+          "Custom": {
+            "name": "pass_type",
+            "kind": {
+              "Enum": [
+                "LOYALITY"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamp"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0e771e4af789288ef1fdbca467e7ebba48be935a1ea8572e6b7bfe03a4285863"
+}

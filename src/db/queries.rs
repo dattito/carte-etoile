@@ -10,7 +10,7 @@ pub async fn insert_device_if_not_exist(
     let now = chrono::Utc::now().naive_utc();
     let mut transaction = pool.begin().await?;
 
-    sqlx::query(
+    sqlx::query!(
         "
 INSERT INTO passes 
 (serial_number, pass_type_id, created_at, last_updated_at) 
@@ -18,15 +18,15 @@ VALUES
 ($1, $2, $3, $4)
 ON CONFLICT(serial_number) 
 DO NOTHING",
+        pass_serial_number,
+        pass_type_id,
+        now,
+        now
     )
-    .bind(pass_serial_number)
-    .bind(pass_type_id)
-    .bind(now)
-    .bind(now)
     .execute(&mut *transaction)
     .await?;
 
-    sqlx::query(
+    sqlx::query!(
         "
 INSERT INTO devices
 (device_library_id, push_token, created_at, last_updated_at) 
@@ -35,15 +35,15 @@ VALUES
 ON CONFLICT (device_library_id) 
 DO UPDATE SET push_token = $2, last_updated_at = $4
 ",
+        device_library_id,
+        device_push_token,
+        now,
+        now
     )
-    .bind(device_library_id)
-    .bind(device_push_token)
-    .bind(now)
-    .bind(now)
     .execute(&mut *transaction)
     .await?;
 
-    sqlx::query(
+    sqlx::query!(
         "
 INSERT INTO device_pass_registrations
 (device_library_id, pass_serial_number, created_at)
@@ -52,10 +52,10 @@ VALUES
 ON CONFLICT (device_library_id, pass_serial_number)
 DO NOTHING
 ",
+        device_library_id,
+        pass_serial_number,
+        now
     )
-    .bind(device_library_id)
-    .bind(pass_serial_number)
-    .bind(now)
     .execute(&mut *transaction)
     .await?;
 
@@ -69,7 +69,7 @@ pub async fn pass_registered_for_device(
     pass_serial_number: &str,
     pool: &PgPool,
 ) -> Result<bool, sqlx::Error> {
-    let result: (bool,) = sqlx::query_as(
+    Ok(sqlx::query_scalar!(
         "
 SELECT EXISTS (
     SELECT 1 
@@ -78,13 +78,12 @@ SELECT EXISTS (
     AND device_library_id=$2
 );
 ",
+        pass_serial_number,
+        device_library_id,
     )
-    .bind(pass_serial_number)
-    .bind(device_library_id)
     .fetch_one(pool)
-    .await?;
-
-    Ok(result.0)
+    .await?
+    .unwrap_or(false))
 }
 
 pub async fn correct_serial_number_auth_token(
@@ -92,7 +91,7 @@ pub async fn correct_serial_number_auth_token(
     auth_token: &str,
     pool: &PgPool,
 ) -> Result<bool, sqlx::Error> {
-    let result: bool = sqlx::query_scalar(
+    let result = sqlx::query_scalar!(
         "
 SELECT EXISTS (
     SELECT 1 
@@ -101,11 +100,12 @@ SELECT EXISTS (
     AND auth_token = $2
 );
 ",
+        serial_number,
+        auth_token
     )
-    .bind(serial_number)
-    .bind(auth_token)
     .fetch_one(pool)
-    .await?;
+    .await?
+    .unwrap_or(false);
 
     Ok(result)
 }
@@ -114,18 +114,17 @@ pub async fn push_tokens_from_serial_number(
     serial_number: &str,
     conn: &PgPool,
 ) -> Result<Vec<String>, sqlx::Error> {
-    sqlx::query_scalar("SELECT d.push_token FROM devices d INNER JOIN device_pass_registrations dpr ON dpr.device_library_id=d.device_library_id WHERE dpr.pass_serial_number=$1")
-        .bind(serial_number)
+    sqlx::query_scalar!("SELECT d.push_token FROM devices d INNER JOIN device_pass_registrations dpr ON dpr.device_library_id=d.device_library_id WHERE dpr.pass_serial_number=$1", serial_number)
         .fetch_all(conn)
         .await
 }
 
 pub async fn remove_devices_with_push_tokens(
-    push_tokens: Vec<&str>,
+    push_tokens: Vec<String>,
     conn: &PgPool,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query("DELETE FROM devices WHERE push_token=ANY($1)")
-        .bind(push_tokens)
+    let x = &push_tokens[..];
+    sqlx::query!("DELETE FROM devices WHERE push_token=ANY($1)", x)
         .execute(conn)
         .await?;
 

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT d.push_token FROM devices d INNER JOIN device_pass_registrations dpr ON dpr.device_library_id=d.device_library_id WHERE dpr.pass_serial_number=$1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "push_token",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7769409fa2eed6d0fc6c2a7d075180ad5759f66bf00891878a3db45a6d207f16"
+}

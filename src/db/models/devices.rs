@@ -10,22 +10,25 @@ pub struct DbDevice {
 
 impl DbDevice {
     pub async fn count_of_passes(
-        devic_library_id: &str,
+        device_library_id: &str,
         pool: &PgPool,
     ) -> Result<i64, sqlx::Error> {
-        sqlx::query_scalar(
+        Ok(sqlx::query_scalar!(
             "SELECT COUNT(*) FROM device_pass_registrations WHERE device_library_id = $1",
+            device_library_id
         )
-        .bind(devic_library_id)
         .fetch_one(pool)
-        .await
+        .await?
+        .unwrap_or(0))
     }
 
     pub async fn delete(device_library_id: &str, conn: &PgPool) -> Result<(), sqlx::Error> {
-        sqlx::query("DELETE FROM devices WHERE device_library_id=$1")
-            .bind(device_library_id)
-            .execute(conn)
-            .await?;
+        sqlx::query!(
+            "DELETE FROM devices WHERE device_library_id=$1",
+            device_library_id
+        )
+        .execute(conn)
+        .await?;
 
         Ok(())
     }
@@ -35,11 +38,9 @@ impl DbDevice {
         pass_serial_number: &str,
         conn: &PgPool,
     ) -> Result<(), sqlx::Error> {
-        sqlx::query(
-            "DELETE FROM device_pass_registrations WHERE device_library_id=$1 AND pass_serial_number=$2",
+        sqlx::query!(
+            "DELETE FROM device_pass_registrations WHERE device_library_id=$1 AND pass_serial_number=$2", device_library_id, pass_serial_number
         )
-        .bind(device_library_id)
-        .bind(pass_serial_number)
         .execute(conn)
         .await?;
 

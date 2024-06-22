@@ -136,7 +136,7 @@ impl App {
 
         let dirty_push_tokens = dirty_push_token_errors
             .into_iter()
-            .map(|(i, _)| push_tokens[i].as_str())
+            .map(|(i, _)| push_tokens[i].clone())
             .collect::<Vec<_>>();
 
         remove_devices_with_push_tokens(dirty_push_tokens, &self.db_pool).await?;

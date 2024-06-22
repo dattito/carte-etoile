@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nINSERT INTO passes \n(serial_number, pass_type_id, created_at, last_updated_at) \nVALUES\n($1, $2, $3, $4)\nON CONFLICT(serial_number) \nDO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e1e843e6167119ca2ae42b9357aa6018665fefe685fe6493815d974e7d6a6e43"
+}
