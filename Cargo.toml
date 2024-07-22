@@ -19,7 +19,7 @@ futures = "0.3.30"
 image = "0.25.1"
 indexmap = "2.2.6"
 oidc-jwt-validator = "0.2.3"
-openssl = "0.10.64"
+openssl = "0.10.66"
 passes = "1.0.1"
 reqwest11 = {version="0.11.27", package="reqwest"} # must be 0.11
 schemars = {version="0.8.20", features=["uuid1", "chrono"]}
