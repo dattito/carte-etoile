@@ -1,4 +1,3 @@
-use aide::transform::TransformOperation;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -6,7 +5,7 @@ use axum::{
 
 use crate::{apple::webhook_server::extractors::AuthToken, http::AppState, Result};
 
-#[derive(serde::Deserialize, schemars::JsonSchema)]
+#[derive(serde::Deserialize)]
 pub struct PathParams {
     pub device_library_id: String,
     pub serial_number: String,
@@ -26,10 +25,4 @@ pub async fn handle_device_deregistration(
         .await?;
 
     Ok(StatusCode::OK)
-}
-
-pub fn handle_device_deregistration_docs(op: TransformOperation) -> TransformOperation {
-    op.description("Deregister a device for a pass")
-        .tag("Apple Webhooks")
-        .response::<200, ()>()
 }

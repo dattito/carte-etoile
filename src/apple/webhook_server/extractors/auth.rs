@@ -1,22 +1,9 @@
-use aide::{
-    gen::GenContext,
-    openapi::{
-        HeaderStyle, Operation, Parameter, ParameterData, ParameterSchemaOrContent, SchemaObject,
-    },
-    operation::add_parameters,
-    OperationInput,
-};
-use axum::{
-    async_trait,
-    extract::FromRequestParts,
-    http::{request::Parts, HeaderValue},
-};
-use axum_extra::headers::Header;
+use axum::extract::FromRequestParts;
+use axum::http::{request::Parts, HeaderValue};
 use axum_extra::{
     headers::{authorization::Credentials, Authorization},
     TypedHeader,
 };
-use indexmap::IndexMap;
 
 use crate::error::Error;
 
@@ -24,7 +11,6 @@ pub struct AuthToken(pub String);
 
 type ApplePassTypedHeader = Authorization<ApplePass>;
 
-#[async_trait]
 impl<S> FromRequestParts<S> for AuthToken
 where
     S: Send + Sync,
@@ -36,37 +22,6 @@ where
             TypedHeader::from_request_parts(parts, state).await?;
 
         Ok(Self(b.token().into()))
-    }
-}
-
-impl OperationInput for AuthToken {
-    fn operation_input(ctx: &mut GenContext, operation: &mut Operation) {
-        let s = ctx.schema.subschema_for::<String>();
-        add_parameters(
-            ctx,
-            operation,
-            [Parameter::Header {
-                parameter_data: ParameterData {
-                    name: ApplePassTypedHeader::name().to_string(),
-                    description: Some(
-                        "The auth token that the apple device uses to authenticate on our services"
-                            .into(),
-                    ),
-                    required: true,
-                    format: ParameterSchemaOrContent::Schema(SchemaObject {
-                        json_schema: s,
-                        example: None,
-                        external_docs: None,
-                    }),
-                    extensions: Default::default(),
-                    deprecated: None,
-                    example: Some("ApplePass ...".into()),
-                    examples: IndexMap::default(),
-                    explode: None,
-                },
-                style: HeaderStyle::Simple,
-            }],
-        );
     }
 }
 
@@ -88,8 +43,7 @@ impl Credentials for ApplePass {
     fn decode(value: &HeaderValue) -> Option<Self> {
         debug_assert!(
             value.as_bytes()[..Self::SCHEME.len()].eq_ignore_ascii_case(Self::SCHEME.as_bytes()),
-            "HeaderValue to decode should start with \"ApplePass ..\", received = {:?}",
-            value,
+            "HeaderValue to decode should start with \"ApplePass ..\", received = {value:?}",
         );
 
         value.to_str().ok().map(|t| ApplePass(t.into()))

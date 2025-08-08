@@ -1,12 +1,11 @@
 use axum::{http::StatusCode, response::IntoResponse};
-use schemars::JsonSchema;
 use serde::Serialize;
 use serde_json::Value;
 use uuid::Uuid;
 
 use crate::Error;
 
-#[derive(Serialize, JsonSchema, Debug)]
+#[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientError {
     /// The unique name of the error
@@ -126,7 +125,7 @@ impl From<Error> for ClientError {
 impl IntoResponse for ClientError {
     fn into_response(self) -> axum::response::Response {
         let status = self.status;
-        let mut res = axum::Json(self).into_response();
+        let mut res = axum::Json(self.clone()).into_response();
         *res.status_mut() = status;
         res
     }

@@ -1,4 +1,3 @@
-use aide::transform::TransformOperation;
 use axum::{
     body::Body,
     extract::State,
@@ -31,10 +30,4 @@ pub async fn handle_create_pass(
     info!("created pass: {}", serial_number);
 
     Ok((headers, body))
-}
-
-pub fn handle_create_pass_docs(op: TransformOperation) -> TransformOperation {
-    op.description("Create a new pass")
-        .tag("Passes")
-        .response_with::<200, (), _>(|res| res.description("Returns the new pass as a file"))
 }

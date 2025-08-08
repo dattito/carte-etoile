@@ -8,9 +8,9 @@ authors = ["dattito"]
 
 [dependencies]
 a2 = {version="0.10.0", features=["tracing"] } 
-aide = { version = "0.13.4", features = ["axum", "axum-extra", "serde_qs", "redoc", "scalar", "macros", "axum-headers"] }
-axum = { version = "0.7.5", features = ["tracing", "json"] }
-axum-extra = { version = "0.9.3", features = ["typed-header"] }
+
+axum = { version = "0.8.4", features = ["tracing", "json"] }
+axum-extra = { version = "0.10.1", features = ["typed-header"] }
 chrono = "0.4.38"
 dotenvy = "0.15.7"
 envy = "0.4.2"
@@ -22,16 +22,15 @@ oidc-jwt-validator = "0.2.3"
 openssl = "0.10.64"
 passes = "1.0.1"
 reqwest11 = {version="0.11.27", package="reqwest"} # must be 0.11
-schemars = {version="0.8.20", features=["uuid1", "chrono"]}
 serde = { version = "1.0.198", features = ["derive", "rc"] }
 serde_json = "1.0.116"
 serde_with = { version = "3.8.0", features = ["chrono"] }
-sqlx = { version = "0.7.4", features = ["postgres", "uuid", "chrono", "runtime-tokio" ] }
-thiserror = "1.0.59"
+sqlx = { version = "0.8", features = ["postgres", "uuid", "chrono", "runtime-tokio" ] }
+thiserror = "2.0"
 tokio = { version = "1.37.0", features = ["rt-multi-thread", "macros"] }
 tokio-util = { version = "0.7.10", features = ["io"] }
-tower = "0.4.13"
-tower-http = { version = "0.5.2", features = ["cors", "trace"] }
+tower = "0.5.2"
+tower-http = { version = "0.6.6", features = ["cors", "trace"] }
 tracing = "0.1.40"
 tracing-panic = "0.1.2"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }

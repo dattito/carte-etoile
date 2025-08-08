@@ -1,4 +1,3 @@
-use aide::OperationOutput;
 use axum::{
     extract::rejection::{JsonRejection, PathRejection},
     response::IntoResponse,
@@ -67,8 +66,4 @@ impl IntoResponse for Error {
     fn into_response(self) -> axum::response::Response {
         ClientError::from(self).into_response()
     }
-}
-
-impl OperationOutput for Error {
-    type Inner = ClientError;
 }

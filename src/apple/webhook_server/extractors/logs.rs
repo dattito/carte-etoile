@@ -1,5 +1,4 @@
 use axum::{
-    async_trait,
     extract::{FromRequest, Request},
     Json,
 };
@@ -11,7 +10,6 @@ pub struct Logs {
     pub logs: Vec<String>,
 }
 
-#[async_trait]
 impl<S> FromRequest<S> for Logs
 where
     S: Send + Sync,

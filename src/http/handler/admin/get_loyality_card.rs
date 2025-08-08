@@ -1,4 +1,3 @@
-use aide::transform::TransformOperation;
 use axum::{
     extract::{Path, State},
     Json,
@@ -7,7 +6,7 @@ use chrono::{DateTime, TimeZone, Utc};
 
 use crate::{http::AppState, Result};
 
-#[derive(serde::Serialize, schemars::JsonSchema)]
+#[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GetLoyalityPassResponse {
     pub serial_number: String,
@@ -18,7 +17,7 @@ pub struct GetLoyalityPassResponse {
     pub last_used_at: Option<DateTime<Utc>>,
 }
 
-#[derive(serde::Deserialize, schemars::JsonSchema)]
+#[derive(serde::Deserialize)]
 pub struct GetLoyalityPassPathParams {
     pub serial_number: String,
 }
@@ -39,24 +38,4 @@ pub async fn handle_get_loyality_pass(
             .last_used_at
             .map(|d| Utc.from_utc_datetime(&d)),
     }))
-}
-
-pub fn handle_get_loyality_pass_docs(op: TransformOperation) -> TransformOperation {
-    op.description("Get a loyality pass")
-        .tag("Shop Operator")
-        .security_requirement("ApiKey")
-        .response_with::<200, Json<GetLoyalityPassResponse>, _>(|res| {
-            res.example(GetLoyalityPassResponse {
-                serial_number: "9c5eb3c8-7c34-4eff-97d4-1edf04d06e81".into(),
-                pass_holder_name: "John Sugar".into(),
-                current_points: 4,
-                total_points: 10,
-                already_redeemed: 2,
-                last_used_at: Some(
-                    DateTime::parse_from_rfc3339("2020-12-09 16:09:53+00:00")
-                        .unwrap()
-                        .into(),
-                ),
-            })
-        })
 }

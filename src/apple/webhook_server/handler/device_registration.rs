@@ -1,4 +1,3 @@
-use aide::transform::TransformOperation;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -10,7 +9,7 @@ use crate::{
     Result,
 };
 
-#[derive(serde::Deserialize, schemars::JsonSchema)]
+#[derive(serde::Deserialize)]
 pub struct PathParams {
     pub device_library_id: String,
     pub serial_number: String,
@@ -34,15 +33,4 @@ pub async fn handle_device_registration(
         true => Ok(StatusCode::OK),
         false => Ok(StatusCode::CREATED),
     }
-}
-
-pub fn handle_device_registration_docs(op: TransformOperation) -> TransformOperation {
-    op.description("Register a new device for a pass")
-        .tag("Apple Webhooks")
-        .response_with::<200, (), _>(|res| {
-            res.description("The device is already registered and now linked to the pass")
-        })
-        .response_with::<201, (), _>(|res| {
-            res.description("The device is new registered and now linked to the pass")
-        })
 }

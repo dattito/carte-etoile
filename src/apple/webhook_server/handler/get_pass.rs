@@ -1,4 +1,3 @@
-use aide::transform::TransformOperation;
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -42,10 +41,4 @@ pub async fn handle_get_pass(
     );
 
     Ok((headers, body))
-}
-
-pub fn handle_get_pass_docs(op: TransformOperation) -> TransformOperation {
-    op.description("Download a specific pass")
-        .tag("Apple Webhooks")
-        .response::<200, ()>()
 }

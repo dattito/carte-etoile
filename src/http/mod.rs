@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 mod client_error;
-mod docs;
+
 mod handler;
 mod middleware;
 mod router;
