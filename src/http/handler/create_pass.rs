@@ -10,7 +10,7 @@ use crate::{http::AppState, wallet::body_from_package, Result};
 
 #[tracing::instrument(err, skip(state))]
 pub async fn handle_create_pass(
-    State(state): State<AppState>,
+    state: State<AppState>,
 ) -> Result<([(HeaderName, String); 3], Body)> {
     let (mut wallet_pass, serial_number) = state.app.add_pass("Test Name").await?;
 
